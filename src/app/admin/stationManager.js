@@ -6,20 +6,55 @@ const allStations = {};
 class Station {
     constructor(name) {
         this.name = name;
-        this.checkListItem = [];
-        this.test = [];
+        this.checklistItems = [];
+        this.questions = [];
+
+        this.questionTimer = {
+            enabled: false,
+            duration: 0 
+        };
+
+        this.checklistTimer = {
+            enabled: false,
+            duration: 0
+        }
     }
 
-    addCheckList(item) {
-        this.checkListItem.push(item);
+    addChecklist(item) {
+        this.checklistItems.push(item);
     }
 
     addQuestion(question) {
-        this.test.push(question);
+        this.questions.push(question);
     }
-    
-};
 
+    toogleChecklistTimer() {
+        if(!this.checklistTimer.enabled) {
+            this.checklistTimer.enabled = true;
+        } else {
+            this.checklistTimer.enabled = false;
+            this.checklistTimer.duration = 0;
+        }
+    }
+
+   setChecklistTimer(seconds) {
+        this.checklistTimer.duration = seconds;
+    }
+
+
+   toogleQuestionsTimer() {
+        if (!this.questionTimer.enabled) {
+            this.questionTimer.enabled = true;
+        } else {
+            this.questionTimer.enabled = false;
+            this.questionTimer.duration = 0;
+        }
+   }
+   setQuestionsTimer(seconds) {
+        this.questionTimer.duration = seconds;
+   } 
+
+};
 
 
 export function createStation(name) {
@@ -41,3 +76,33 @@ export function saveStation(station) {
         alert(`${formatName} station already exist!!!`)
     }
 };
+
+
+class Checklist {
+    constructor(description, mark) {
+        this.id = crypto.randomUUID()
+        this.description = description;
+        this.mark = mark;
+        this.checked = false;
+    }
+}
+
+class Question {
+    constructor(description, option, answer) {
+        this.id = crypto.randomUUID();
+        this.description = description;
+        this.option = option;
+        this.answer = answer;
+        this.attempt = false;
+    }
+}
+
+function addChecklistToStation(station, description, mark) {
+    const checklist = new Checklist(description, mark);
+    station.addChecklist(checklist);
+};
+
+function addQuestionToStation(station, description, option, answer) {
+    const question = new Question(description, option, answer);
+    station.addQuestion(question);
+}
