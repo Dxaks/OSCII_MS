@@ -15,6 +15,11 @@ class StationManagement {
     return true;
   }
 
+  static getStationById(id) {
+    return Object.values(this.allStations)
+    .find((station) => station.id === id);
+  }
+
   static getStation(stationName) {
     const stationKey = formatStr(stationName);
     return this.allStations[stationKey];
@@ -27,9 +32,11 @@ class StationManagement {
 
 
 class Station {
-    constructor(name) {
+    constructor(name, description) {
         this.name = name;
-        this.checklistItems = [];
+        this.description = description;
+        this.id = crypto.randomUUID()
+        this.procedureItems = [];
         this.questions = [];
 
         this.questionTimer = {
@@ -37,31 +44,31 @@ class Station {
             duration: 0 
         };
 
-        this.checklistTimer = {
+        this.procedureTimer = {
             enabled: false,
             duration: 0
         }
     }
 
-    addChecklist(item) {
-        this.checklistItems.push(item);
+    addProcedure(item) {
+        this.procedureItems.push(item);
     }
 
     addQuestion(question) {
         this.questions.push(question);
     }
 
-    toggleChecklistTimer() {
-        if(!this.checklistTimer.enabled) {
-            this.checklistTimer.enabled = true;
+    toggleProcedureTimer() {
+        if(!this.procedureTimer.enabled) {
+            this.procedureTimer.enabled = true;
         } else {
-            this.checklistTimer.enabled = false;
-            this.checklistTimer.duration = 0;
+            this.procedureTimer.enabled = false;
+            this.procedureTimer.duration = 0;
         }
     }
 
-   setChecklistTimer(seconds) {
-        this.checklistTimer.duration = seconds;
+   setProcedureTimer(seconds) {
+        this.procedureTimer.duration = seconds;
     }
 
 
@@ -80,8 +87,8 @@ class Station {
 };
 
 
-export function createStation(name) {
-    const station = new Station(name);
+export function createStation(name, description) {
+    const station = new Station(name, description);
     return station;
 };
 
@@ -92,21 +99,27 @@ export function saveStation(station) {
 
 };
 
+
 export function getStation(stationName) {
   return StationManagement.getStation(stationName);
 }
+
+export function getStationById(id) {
+  return StationManagement.getStationById(id);
+}
+
 
 export function getAllStations() {
   return StationManagement.getAllStations();
 }
 
 
-class Checklist {
-    constructor(description, mark) {
+class ProcedureItem {
+    constructor(description, scoreOptions) {
         this.id = crypto.randomUUID()
         this.description = description;
-        this.mark = mark;
-        this.checked = false;
+        this.scoreOptions = scoreOptions;
+        this.selectedScore = null;
     }
 }
 
@@ -118,12 +131,11 @@ class Question {
         this.options = options;
         this.answer = answer;
         this.mark = mark;
-        this.attempt = false;
     }
 }
 
 
-export function addChecklistToStation(stationName, description, mark) {
+export function addProcedureToStation(stationName, description, scoreOptions) {
   const station = StationManagement.getStation(stationName);
 
   if (!station) {
@@ -131,8 +143,8 @@ export function addChecklistToStation(stationName, description, mark) {
     return false;
   }
 
-  const checklist = new Checklist(description, mark);
-  station.addChecklist(checklist);
+  const procedureItem = new ProcedureItem(description, scoreOptions);
+  station.addProcedure(procedureItem);
   return true;
 }
 

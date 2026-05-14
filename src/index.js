@@ -1,24 +1,29 @@
 import { renderAdminDashboard } from "./dashboard/adminDashboard.js";
-import { renderModeratorDashboard } from "./dashboard/moderatorDashboard.js";
-import { renderStudentDashboard } from "./dashboard/studentDashboard.js";
+import { renderHomePage } from "./dashboard/homePage.js";
 import "./style/default.css"
 
+
+homePageRoute();
+
 const content = document.querySelector("#content");
-const nav = document.querySelector("nav");
 
-const pages = {
-  admin: renderAdminDashboard,
-  moderator: renderModeratorDashboard,
-  student: renderStudentDashboard,
-};
+document.addEventListener('DOMContentLoaded', () => {
+  renderHomePage(content);
+})
 
-nav.addEventListener("click", (e) => {
-  const btn = e.target.closest("button");
-  if (!btn) return;
 
-  const tab = btn.dataset.tab;
-  pages[tab](content);
-});
+function homePageRoute() {
 
-// default page
-renderAdminDashboard(content);
+  const body = document.querySelector('body');
+
+  body.addEventListener('click', (e) => {
+
+    const target = e.target.closest('[data-tab]');
+
+    if(!target) return;
+    
+    if (target.dataset.tab === 'admin-tab') {
+      renderAdminDashboard(content);
+    }
+  })
+}

@@ -1,3 +1,8 @@
+import { saveStation, createStation, getAllStations, getStationById, addProcedureToStation, addQuestionToStation } from "../app/stationManager.js";
+
+
+
+
 export function renderAdminDashboard(container) {
   container.innerHTML = `
     <section class="dashboard admin-dashboard">
@@ -32,8 +37,9 @@ export function renderAdminDashboard(container) {
 }
 
 
-// second level
 
+
+// second level
 function setupAdminEvents() {
   const adminMenu = document.querySelector(".admin-menu");
   const adminContent = document.querySelector("#admin-content");
@@ -45,7 +51,6 @@ function setupAdminEvents() {
     const page = btn.dataset.adminAction;
 
     if (page === "create-station") {
-    //   renderCreateStation(adminContent);
         showCreateStationModal();
     }
 
@@ -58,70 +63,65 @@ function setupAdminEvents() {
     }
 
     if (page === "add-user") {
-    //   renderAddUser(adminContent);
         showAddUserModal();
     }
   });
 }
 
 
+
 // view stations screen
-
 function renderViewStations(container) {
-  container.innerHTML = `
-    <section class="admin-page">
-      <h2>All Stations</h2>
+  
+  container.innerHTML = '';
 
-      <div class="station-list">
-        <article class="station-card">
-          <div class="station-card-header">
-            <h3>Hand Washing</h3>
-          </div>
+  const section = document.createElement('section');
+  section.className = 'admin-page';
 
-          <p class="station-description">
-            Assess hand hygiene procedure.
-          </p>
+  const allStations = document.createElement('h2');
+  allStations.textContent = 'All Stations';
+  section.appendChild(allStations)
 
-          <div class="station-stats">
-            <div>
-              <strong>3</strong>
-              <span>Checklist Items</span>
-            </div>
+  const stationList = document.createElement('div');
+  stationList.className = 'station-list';
+  
+  const stations = Object.values(getAllStations());
 
-            <div>
-              <strong>5</strong>
-              <span>Questions</span>
-            </div>
-          </div>
+  stations.forEach((station) => {
+    const article = document.createElement('article');
+    article.className = 'station-card'
 
-          <div class="station-timers">
-            <div class="timer">
-                Checklist: 5 mins
-            </div>
+    const stationHeader = document.createElement('h3');
+    stationHeader.className = 'station-card-header';
+    stationHeader.textContent = `${station.name}`;
+    article.appendChild(stationHeader)
 
-            <div class="timer">
-                Questions: 10 mins
-            </div>
-        </div>
+    const stationDescription = document.createElement('p');
+    stationDescription.className = 'station-description';
+    stationDescription.textContent = `${station.description}`;
+    article.appendChild(stationDescription)
 
-          <button class="enter-station-btn">
-            Enter Station
-          </button>
-        </article>
-      </div>
-    </section>
-  `;
-}
-// show users screen
+    const enterStationBtn = document.createElement('button');
+    enterStationBtn.className = 'enter-station-btn';
+    enterStationBtn.textContent = 'Enter Station'
+    enterStationBtn.dataset.station = station.id;
+    article.appendChild(enterStationBtn)
 
-function renderUsers(container) {
-  container.innerHTML = `
-    <section class="admin-page">
-      <h2>Users</h2>
-      <p>All registered users will appear here.</p>
-    </section>
-  `;
-}
+    enterStationBtn.addEventListener('click', () => {
+      const content = document.querySelector('#content');
+      renderStationPage(content, station.id);
+    });
+
+    stationList.appendChild(article);
+  });
+
+  section.appendChild(stationList)
+  container.appendChild(section)
+};
+
+
+
+
 
 
 // html modal
@@ -154,6 +154,9 @@ function openModal(title, formHtml) {
   });
 }
 
+
+
+
 // create station modal
 function showCreateStationModal() {
   openModal("Create Station", `
@@ -166,18 +169,13 @@ function showCreateStationModal() {
           placeholder="e.g. Hand Washing Procedure" 
           required
         />
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Question Timer</label>
-          <input type="number" name="questionDuration" placeholder="Seconds" />
-        </div>
-
-        <div class="form-group">
-          <label>Checklist Timer</label>
-          <input type="number" name="checklistDuration" placeholder="Seconds" />
-        </div>
+        <label>Station Description</label>
+        <input 
+          type="text-area" 
+          name="stationDescription"
+          row="5" 
+          required
+        />
       </div>
 
       <button class="form-submit-btn" type="submit">
@@ -185,10 +183,16 @@ function showCreateStationModal() {
       </button>
     </form>
   `);
+
+  const form = document.querySelector('#create-station-form');
+  form.addEventListener('submit', handleCreateStation)
 }
 
-// add user modal
 
+
+
+
+// add user modal
 function showAddUserModal() {
   openModal("Add User", `
     <form id="add-user-form" class="dashboard-form">
@@ -235,4 +239,372 @@ function showAddUserModal() {
       </button>
     </form>
   `);
+}
+
+
+
+
+function handleCreateStation(e) {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+
+  const stationName = formData.get("stationName");
+  const stationDescription = formData.get("stationDescription");
+
+  const station = createStation(stationName, stationDescription);
+  const saved = saveStation(station);
+
+  if (saved) {
+    const adminContent = document.querySelector('#admin-content');
+    renderViewStations(adminContent);
+    document.querySelector(".modal-overlay").remove();
+  }
+}
+
+
+
+
+function renderStationPage(container, stationId) {
+
+  const station = getStationById(stationId);
+  container.innerHTML = '';
+
+  const backBtn = document.createElement("button");
+  backBtn.className = "back-btn";
+  backBtn.textContent = "← Back";
+
+  backBtn.addEventListener("click", () => {
+    renderAdminDashboard(container);
+  });
+
+  const section = document.createElement('section');
+  section.className = 'station-management-page';
+  section.appendChild(backBtn);
+
+  // station title
+  const heading = document.createElement('h2');
+
+  heading.textContent = station.name;
+
+  section.appendChild(heading);
+
+  // procedure box
+  const procedureBox = document.createElement('div');
+  procedureBox.className = 'station-box';
+
+  procedureBox.innerHTML = `
+    <h3>Procedure ${station.name}</h3>
+    <p>${station.procedureItems.length} Procedure Items</p>
+
+    <ul class="procedure-list">
+      ${
+        station.procedureItems
+          .map((item) => `
+            <li>
+              ${item.description}
+            </li>
+          `)
+          .join("")
+      }
+    </ul>
+
+    <button class="add-procedure-btn">
+      Add Procedure Item
+    </button>
+  `;
+
+  const addProcedureBtn = procedureBox.querySelector("button");
+
+  addProcedureBtn.addEventListener("click", () => {
+    showProcedureModal(station.id, container);
+
+  });
+
+
+
+  // question box
+  const questionBox = document.createElement('div');
+
+  questionBox.className = 'station-box';
+
+  questionBox.innerHTML = `
+    <h3>Question ${station.name}</h3>
+    <p>${station.questions.length} Questions</p>
+
+    <ul class="question-list">
+
+      ${
+        station.questions
+          .map((question) => `
+            <li>
+
+              <strong>
+                ${question.description}
+              </strong>
+
+              <p>
+                Answer:
+                ${question.answer}
+              </p>
+
+              <span>
+                ${question.mark} marks
+              </span>
+
+            </li>
+          `)
+          .join("")
+      }
+
+    </ul>
+
+    <button class="add-question-btn">
+      Add Question
+    </button>
+  `;
+
+  const addQuestionBtn = questionBox.querySelector("button");
+
+  addQuestionBtn.addEventListener("click", () => {
+    showQuestionModal(station.id, container)
+
+  });
+
+  const grid = document.createElement("div");
+  grid.className = "station-grid";
+
+  grid.appendChild(procedureBox);
+  grid.appendChild(questionBox);
+  section.appendChild(grid);
+
+  container.appendChild(section);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function showProcedureModal(stationId, container) {
+
+  const overlay = document.createElement("div");
+
+  overlay.className = "modal-overlay";
+
+  overlay.innerHTML = `
+    <div class="modal">
+
+      <h2>Add Procedure Item</h2>
+
+      <form id="procedure-form">
+
+        <input
+          type="text"
+          name="description"
+          placeholder="Procedure description"
+          required
+        >
+
+        <input
+          type="text"
+          name="scoreOptions"
+          placeholder="Mark"
+          required
+        >
+
+        <button type="submit">
+          Save Procedure
+        </button>
+
+      </form>
+
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const form = overlay.querySelector("#procedure-form");
+
+  form.addEventListener("submit", (e) => {
+    handleProcedureSubmit(e, stationId, container);
+
+  });
+}
+
+
+
+
+
+
+
+
+
+
+function handleProcedureSubmit(e, stationId, container) {
+
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+
+  const description = formData.get("description");
+
+  const scoreOptions = formData.get("scoreOptions").split(",").map(Number);
+
+  const station = getStationById(stationId);
+
+  addProcedureToStation(station.name, description, scoreOptions);
+  
+  document.querySelector(".modal-overlay").remove();
+
+  renderStationPage(container, stationId);
+}
+
+
+
+
+function showQuestionModal(stationId, container) {
+
+  const overlay = document.createElement("div");
+
+  overlay.className = "modal-overlay";
+
+  overlay.innerHTML = `
+    <div class="modal">
+
+      <h2>Add Question</h2>
+
+      <form id="question-form">
+
+        <textarea
+          name="description"
+          placeholder="Question"
+          required
+        ></textarea>
+
+        <input
+          type="text"
+          name="option1"
+          placeholder="Option 1"
+          required
+        >
+
+        <input
+          type="text"
+          name="option2"
+          placeholder="Option 2"
+          required
+        >
+
+        <input
+          type="text"
+          name="option3"
+          placeholder="Option 3"
+          required
+        >
+
+        <input
+          type="text"
+          name="option4"
+          placeholder="Option 4"
+          required
+        >
+
+        <input
+          type="text"
+          name="answer"
+          placeholder="Correct Answer"
+          required
+        >
+
+        <input
+          type="number"
+          name="mark"
+          placeholder="Mark"
+          required
+        >
+
+        <button type="submit">
+          Save Question
+        </button>
+
+      </form>
+
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const form =
+    overlay.querySelector("#question-form");
+
+  form.addEventListener("submit", (e) => {
+
+    handleQuestionSubmit(
+      e,
+      stationId,
+      container
+    );
+
+  });
+}
+
+
+
+
+
+
+
+
+function handleQuestionSubmit(
+  e,
+  stationId,
+  container
+) {
+
+  e.preventDefault();
+
+  const formData =
+    new FormData(e.target);
+
+  const description =
+    formData.get("description");
+
+  const options = [
+    formData.get("option1"),
+    formData.get("option2"),
+    formData.get("option3"),
+    formData.get("option4"),
+  ];
+
+  const answer =
+    formData.get("answer");
+
+  const mark =
+    Number(formData.get("mark"));
+
+  const station =
+    getStationById(stationId);
+
+  addQuestionToStation(
+    station.name,
+    description,
+    options,
+    answer,
+    mark
+  );
+
+  document
+    .querySelector(".modal-overlay")
+    .remove();
+
+  renderStationPage(container, stationId);
 }
