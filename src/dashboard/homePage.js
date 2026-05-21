@@ -1,19 +1,80 @@
+import { renderAdminDashboard } from "./adminDashboard.js";
+import { renderMainMenu } from "./mainMenu.js";
+
 export function renderHomePage(container) {
 
-    container.innerHTML = `
-      <div class="home-page">
-        <div>
-          <h1>WELCOME TO UMCONS CLINICAL ASSESSMENT TEST</h1>
-          <p>
-            <button class="home-page-btn" data-tab="admin-tab">Adimn Dashboard</button>
-            <button class="home-page-btn data-tab="menu-tab">Main Menu</button>
-          </p>
+container.innerHTML = `
+
+<div class="home-page">
+
+    <div class="home-logo"></div>
+
+    <div class="home-content">
+
+        <h1>
+
+            Welcome to UMCONS
+            <span>
+            Clinical Assessment Test
+            </span>
+
+        </h1>
+
+        <p>
+
+            Objective Structured Clinical
+            Assessment System
+
+        </p>
+
+        <div class="home-actions">
+
+            <button
+            class="home-page-btn"
+            data-tab="admin-tab">
+
+                Admin Dashboard
+
+            </button>
+
+            <button
+            class="home-page-btn secondary-btn"
+            data-tab="menu-tab">
+
+                Main Menu
+
+            </button>
+
         </div>
 
-        <div class="image">
-          
-        </div>
-        
-      </div>
-   `
+    </div>
+
+</div>
+
+`;
+
+sethomePageRoute(container)
+
+}
+
+
+function sethomePageRoute(container) {
+
+  const body = document.querySelector('body');
+
+  body.addEventListener('click', (e) => {
+
+    const target = e.target.closest('[data-tab]');
+
+    if(!target) return;
+    
+    if (target.dataset.tab === 'admin-tab') {
+      renderAdminDashboard(container);
+    }
+
+    if (target.dataset.tab === 'menu-tab') {
+      renderMainMenu(container)
+
+    }
+  })
 }

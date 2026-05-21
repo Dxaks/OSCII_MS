@@ -161,3 +161,55 @@ export function addQuestionToStation(stationName, description, options, answer, 
   station.addQuestion(question);
   return true;
 }
+
+
+export function toggleProcedureTimer(stationId) {
+
+  const station = StationManagement.getStationById(stationId );
+
+  if (!station) return false;
+
+  station.toggleProcedureTimer();
+
+  return true;
+}
+
+
+export function setProcedureTimerDuration(stationId, seconds) {
+
+  const station = StationManagement.getStationById(stationId);
+
+  if (!station) return false;
+
+  station.setProcedureTimer(seconds);
+
+  return true;
+}
+
+
+
+
+
+export function setQuestionTimerDuration(stationId, seconds) {
+
+  const station = StationManagement.getStationById(stationId);
+
+  if (!station) return false;
+
+  station.setQuestionsTimer(seconds);
+
+  return true;
+}
+
+
+export function toggleQuestionTimer(stationId) {
+
+  const station = StationManagement.getStationById(stationId);
+
+  if (!station) return false;
+
+  station.toggleQuestionsTimer();
+
+  return true;
+}
+
