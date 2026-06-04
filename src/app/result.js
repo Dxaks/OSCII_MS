@@ -18,6 +18,7 @@ class ResultManagement {
 }
 
 
+
 class Result {
   constructor(studentId, stationId) {
     this.id = crypto.randomUUID();
@@ -33,6 +34,18 @@ class Result {
 
     this.procedurePercentage = 0;
     this.questionPercentage = 0;
+
+    this.status = {
+        procedure: "in-progress",
+        question: "in-progress"
+    }
+
+    this.studentAnswers = {};
+
+    this.currentQuestionIndex = 0;
+
+    this.timeRemaining = null;
+
   }
 
   calculateTotal(totalProcedureMarks, totalQuestionMarks) {
@@ -49,16 +62,19 @@ class Result {
         0
       );
 
-    this.procedurePercentage =
-      (this.procedureTotal /
-       totalProcedureMarks) * 100;
+    this.procedurePercentage = totalProcedureMarks > 0
+        ? (this.procedureTotal / totalProcedureMarks) * 100 : 0;
 
-    this.questionPercentage =
-      (this.questionTotal /
-       totalQuestionMarks) * 100;
+    //   (this.procedureTotal /
+    //    totalProcedureMarks) * 100;
+
+    this.questionPercentage = totalQuestionMarks > 0
+        ? (this.questionTotal / totalQuestionMarks) * 100 : 0;
+
+    //   (this.questionTotal /
+    //    totalQuestionMarks) * 100;
   }
 }
-
 
 
 
@@ -133,16 +149,11 @@ export function calculateResult(
 
 
 
-export function getStudentResults(
-    studentId
-) {
+export function getStudentResults(studentId, stationId) {
 
     return Object.values(
         ResultManagement.getAllResults()
-    ).filter(
-        result =>
-        result.studentId === studentId
-    );
+    ).find(result => result.studentId === studentId && result.stationId === stationId);
 }
 
 

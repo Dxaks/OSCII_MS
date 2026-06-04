@@ -109,3 +109,11 @@ user.role===role
 export function getAllUsers() {
     return UserManagement.getUsers()
 }
+
+
+
+export function validateUser(username, password) {
+
+    return UserManagement.login(username, password)
+
+};

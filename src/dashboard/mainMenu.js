@@ -1,5 +1,6 @@
 import { getAllStations } from "../app/stationManager.js";
-import { renderAdminDashboard } from "./adminDashboard.js";
+import { renderHomePage } from "./homePage.js";
+import { renderLoginPage } from "./loginPage.js";
 
 export function renderMainMenu(container) {
 
@@ -10,7 +11,7 @@ export function renderMainMenu(container) {
       backBtn.textContent = "← Back";
     
       backBtn.addEventListener("click", () => {
-        renderAdminDashboard(container);
+        renderHomePage(container);
       });
     
     container.appendChild(backBtn);
@@ -66,4 +67,20 @@ export function renderMainMenu(container) {
     buttonContainer.append(questionBtn);
 
     });
-}
+
+    
+    buttonContainer.addEventListener("click", (e) => {
+
+      const btn = e.target.closest(".menu-btn");
+
+      if (!btn) {
+        return
+      }
+
+      const stationId = btn.dataset.stationId;
+      const type = btn.dataset.type;
+
+      renderLoginPage(container, stationId, type)
+    });
+
+};

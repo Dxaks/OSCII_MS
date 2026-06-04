@@ -589,7 +589,8 @@ body {
   font-size:1.5rem;
 }
 
-.result-card {
+.result-station-card {
+
   background:white;
   border-radius:16px;
   padding:1.5rem;
@@ -730,6 +731,575 @@ body {
   background:#3ea1fd;
   color:whitesmoke;
 }
+
 .menu-btn:hover{
   transform: translateY(-4px);
+}
+
+/* login page */
+
+.login-page{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 85vh;
+}
+
+.login-left{
+  position:relative;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  background-image:
+  url("../asset/images/umcons_background.jpg");
+  background-size:contain;
+  background-repeat: no-repeat;
+  background-position:center;
+}
+
+.login-overlay{
+  width:80%;
+  max-width:500px;
+  padding:3rem;
+  border-radius:30px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  backdrop-filter: blur(15px);
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  color:white;
+  }
+
+.login-overlay h1{
+  font-size:2.5rem;
+  margin-bottom:1rem;
+  font-weight:700;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+
+.login-overlay p{
+  font-size:1rem;
+  opacity: 0.5;
+  line-height:1.6;
+  background-color: #1d4ed8;
+  padding: 10px;
+  border-radius: 30px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+}
+
+.login-overlay{
+  animation: floatCard 4s ease-in-out infinite;
+}
+
+@keyframes floatCard{
+  0%{ transform: translateY(0px);
+  }
+  50%{ransform:
+  translateY(-10px);}
+  100%{transform:translateY(0px);}
+  }
+
+.login-right{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.login-card{
+  width:450px;
+  padding:2rem;
+  border-radius:20px;
+  background:white;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, .1);
+}
+
+.login-form{
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+}
+
+.login-form input{
+  padding:1rem;
+  margin-top: 1rem;
+  border-radius:10px;
+  border:1px solid #ddd;
+}
+
+.login-form button{
+  border:none;
+  padding:1rem;
+  background:#2563eb;
+  color:white;
+  border-radius:10px;
+  cursor:pointer;
+  margin-top: 10px;
+}
+
+
+/* assessment info page */
+
+.assessment-info-page{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  max-height: 100vh;
+  overflow-y: hidden;
+}
+
+.assessment-card{
+  width:700px;
+  height: fit-content;
+  padding:1.5rem;
+  border-radius:25px;
+  background:rgba(255,255,255,0.3);
+  backdrop-filter: blur(15px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+}
+
+.user-details,
+.assessment-details{
+  display:grid;
+  margin:1.5rem 0;
+}
+
+.start-assessment-btn{
+  width:100%;
+  height: fit-content;
+  padding:1rem;
+  border:none;
+  border-radius:15px;
+  cursor:pointer;
+  font-size:1rem;
+  font-weight:bold;
+  color:white;
+  background-color: #1d4ed8;
+  margin-top:1rem;
+}
+
+.user-profile-card{
+  display:flex;
+  align-items:center;
+  gap:1.5rem;
+  padding:1.5rem;
+  margin-bottom:2rem;
+  border-radius:20px;
+  background:rgba(255,255,255,0.4);
+}
+
+.user-image-wrapper{
+  width:250px;
+  height:250px;
+  border-radius:50%;
+  overflow:hidden;
+  border:3px solid white;
+  flex-shrink:0;
+}
+
+.user-profile-image{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-details h3{
+  margin-bottom: 5px;
+}
+
+.user-details p{
+  margin-bottom: 5px;
+  opacity:.8;
+}
+
+
+/* test page */
+
+.question-page{
+  max-height:100vh;
+  padding:2rem;
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+  background:#f5f7fb;
+}
+
+
+.question-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding: 0.5rem 2rem;
+  border-radius:20px;
+  background:white;
+  box-shadow:
+  0 4px 15px rgba(0,0,0,.08);
+}
+
+.question-header h1{
+  margin-bottom:.4rem;
+}
+
+.question-header p{
+  color:#666;
+}
+
+.question-timer{
+  padding:1rem 1.5rem;
+  border-radius:12px;
+  font-weight:bold;
+  font-size:1.2rem;
+  background:#2563eb;
+  color:white;
+}
+
+
+.question-container{
+  flex:1;
+  display:grid;
+  grid-template-columns:400px 1fr;
+  gap:1.5rem;
+}
+
+.question-nav{
+  display:grid;
+  grid-template-columns:
+  repeat(4, 1fr);
+  gap:.5rem;
+  align-content:start;
+}
+
+.question-nav button{
+  height:45px;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  font-weight:bold;
+  background:white;
+  box-shadow:
+  0 2px 8px rgba(0,0,0,.08);
+}
+
+
+.question-nav button.answered{
+  background:#22c55e;
+  color:white;
+}
+
+.question-content{
+  background:white;
+  border-radius:20px;
+  padding: 0.5rem 2rem;
+  box-shadow:
+  0 4px 15px rgba(0,0,0,.08);
+}
+
+.question-content h2{
+  margin-bottom:1rem;
+}
+
+.question-content p{
+  font-size:1rem;
+  line-height:1.7;
+  margin-bottom:1rem;
+}
+
+.question-options{
+  display:flex;
+  flex-direction:column;
+  gap: 0.1rem;
+}
+
+.question-options label{
+  display:flex;
+  align-items:center;
+  gap:.8rem;
+  padding:0.4rem;
+  cursor:pointer;
+  transition:.2s;
+}
+
+.question-options label:hover{
+  background:#f8fafc;
+}
+
+.question-controls{
+  display:flex;
+  justify-content:space-between;
+}
+
+.question-controls button{
+  padding:.9rem 2rem;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  font-weight:600;
+}
+
+.prev-btn{
+  background:#e5e7eb;
+}
+
+.next-btn { 
+  background:#2563eb;
+  color:white;
+}
+
+
+/* submit dialog */
+
+.submit-dialog {
+  border:none;
+  border-radius:20px;
+  padding:0;
+}
+
+.submit-dialog::backdrop {
+    background:
+    rgba(0, 0, 0, .5);
+}
+
+.submit-dialog-content {
+  min-width:400px;
+  padding:2rem;
+}
+
+.submit-dialog-content h2 {
+    margin-bottom:1rem;
+}
+
+.submit-dialog-content p {
+  margin-bottom:.8rem;
+}
+
+.dialog-actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:1rem;
+  margin-top:2rem;
+}
+
+.cancel-dialog-btn {
+  padding:.8rem 1.5rem;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.submit-dialog-btn {
+  padding:.8rem 1.5rem;
+  border:none;
+  border-radius:10px;
+  cursor:pointer;
+  color:white;
+  background:#16a34a;
+}
+
+
+/* submission summary */
+
+.result-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.result-card {
+  width: 500px;
+  background: white;
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.1);
+}
+
+.result-icon {
+  width: 80px;
+  height: 80px;
+  margin: auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  background: #22c55e;
+  color: white;
+}
+
+.result-details {
+  margin: 2rem 0;
+  text-align: left;
+}
+
+.result-details p {
+  margin-bottom: 1rem;
+}
+
+.result-home-btn {
+  padding: .8rem 2rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+
+/* generic dialog for confirmation*/
+
+dialog {
+  border: none;
+  padding: 0;
+  border-radius: 20px;
+  background: transparent;
+}
+
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, .5);
+  backdrop-filter: blur(4px);
+}
+
+
+.confirm-dialog, 
+.submit-dialog-content {
+  min-width: 420px;
+  padding: 2rem;
+  border-radius: 20px;
+  background: rgba(255,255,255,.15);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255,255,255,.2);
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+
+
+.confirm-dialog h2 {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  color: #1e293b;
+}
+
+
+.confirm-dialog p {
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  color: #475569;
+}
+
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+
+.cancel-btn {
+  padding: .8rem 1.4rem;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  cursor: pointer;
+  transition: .2s;
+}
+
+
+.cancel-btn:hover {
+  transform: translateY(-2px);
+}
+
+
+.confirm-btn {
+  padding: .8rem 1.4rem;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  color: white;
+  background: #dc2626;
+  transition: .2s;
+}
+
+
+.confirm-btn:hover {
+  transform: translateY(-2px);
+  background: #b91c1c;
+}
+
+.assessment-info-page .logout-btn,
+.login-page .back-to-station-selection {
+  position: absolute;
+  right: 50px;
+  align-self: flex-start;
+  
+}
+
+.logout-btn {
+    padding: .8rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: .95rem;
+    font-weight: 600;
+    color: white;
+    background: #dc2626;
+    transition: all .2s ease;
+}
+
+
+.logout-btn:hover {
+    background: #b91c1c;
+    transform: translateY(-2px);
+}
+
+
+
+.logout-btn:active {
+    transform: translateY(0);
+}
+
+
+.logout-btn {
+    padding: .8rem 1.5rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(220,38,38,.15);
+    backdrop-filter: blur(10px);
+    color: #dc2626;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.logout-btn:hover {
+    background: rgba(220,38,38,.25);
+    transform: translateY(-2px);
+}
+
+
+/* notification dialog */
+
+.notice-dialog {
+    min-width: 400px;
+    padding: 2rem;
+    border-radius: 20px;
+    text-align: center;
+    background: white;
+}
+
+.dialog-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.notice-btn {
+    margin-top: 1.5rem;
+    padding: .8rem 2rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #2563eb;
+    color: white;
 }

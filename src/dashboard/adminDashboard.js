@@ -553,7 +553,7 @@ function renderStationPage(container, stationId) {
 
   <div class="result-content">
 
-      <div class="result-card">
+      <div class="result-station-card">
 
           <table class="result-table">
 
@@ -945,7 +945,7 @@ function renderUsers(container){
         All Users
     </h2>
 
-    <div class="result-card">
+    <div class="result-station-card">
 
         <table class="result-table">
 
