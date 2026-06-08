@@ -4,6 +4,7 @@ import { renderAssessmentInfo } from "./assessmentInfo.js";
 import { renderMainMenu } from "./mainMenu.js";
 import { showNoticeDialog } from "../utilities/utility.js";
 import { getStudentResults } from "../app/result.js";
+import { renderProcedureInfo } from "./procedureAssessmentInfo.js";
 
 
 export function renderLoginPage(container, stationId, type) {
@@ -120,15 +121,40 @@ function setupLoginEvents(container, stationId, type) {
                 message: "Invalid username or password."
             });
 
+        return
+
+        } 
+        
+        if(user.role === "moderator" && type === "question") {
+            showNoticeDialog({
+                title: "Access Denied !!!",
+                message: "You are not Authorised to View Question Station"
+            });
             return
         }
 
-        const existingResult = getStudentResults(user.id, station.id);
-
-        renderAssessmentInfo(container, user, station, type, existingResult);
-
+        if(user.role === "student" && type === "procedure") {
+            showNoticeDialog({
+                title: "Access Denied !!!",
+                message: "You are not Authorised to View Procedure Station"
+            });
+            return
         }
-    );
+       
+       
+       
+        if(user.role === "student") {
+
+            const existingResult = getStudentResults(user.id, station.id);
+            renderAssessmentInfo(container, user, station, type, existingResult);
+        }
+
+         if(user.role === "moderator") {
+            renderProcedureInfo(container, station, user, type)
+        }
+
+
+    });
 
     const bactToMenu = container.querySelector('.back-btn');
     bactToMenu.addEventListener("click", (e) => {

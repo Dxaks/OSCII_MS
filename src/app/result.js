@@ -41,10 +41,11 @@ class Result {
     }
 
     this.studentAnswers = {};
-
     this.currentQuestionIndex = 0;
-
     this.timeRemaining = null;
+
+    this.procedureTimeRemaining = null;
+    this.procedureScores = {};
 
   }
 
@@ -65,14 +66,9 @@ class Result {
     this.procedurePercentage = totalProcedureMarks > 0
         ? (this.procedureTotal / totalProcedureMarks) * 100 : 0;
 
-    //   (this.procedureTotal /
-    //    totalProcedureMarks) * 100;
-
     this.questionPercentage = totalQuestionMarks > 0
         ? (this.questionTotal / totalQuestionMarks) * 100 : 0;
 
-    //   (this.questionTotal /
-    //    totalQuestionMarks) * 100;
   }
 }
 

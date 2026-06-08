@@ -1,4 +1,5 @@
-import { formatStr } from "../utilities/utility.js";
+import { formatStr, notyf } from "../utilities/utility.js";
+import { saveStationToLocalStorage } from "./localStorage.js";
 
 class StationManagement {
   static allStations = {};
@@ -7,7 +8,7 @@ class StationManagement {
     const stationKey = formatStr(station.name);
 
     if (this.allStations[stationKey]) {
-      alert(`${station.name} already exists`);
+      notyf.error(`${station.name} already exist`)
       return false;
     }
 
@@ -32,10 +33,10 @@ class StationManagement {
 
 
 class Station {
-    constructor(name, description) {
+    constructor(name, description, id) {
         this.name = name;
         this.description = description;
-        this.id = crypto.randomUUID()
+        this.id = id || crypto.randomUUID()
         this.procedureItems = [];
         this.questions = [];
 
@@ -89,15 +90,19 @@ class Station {
 
 export function createStation(name, description) {
     const station = new Station(name, description);
+    StationManagement.saveStation((station))
+    saveStationToLocalStorage(getAllStations());
     return station;
 };
 
 
-export function saveStation(station) {
+// export function saveStation(station) {
 
-   return StationManagement.saveStation(station);
+//    StationManagement.saveStation(station);
+//    saveStationToLocalStorage(station);
+//    return true;
 
-};
+// };
 
 
 export function getStation(stationName) {
@@ -119,14 +124,13 @@ class ProcedureItem {
         this.id = crypto.randomUUID()
         this.description = description;
         this.scoreOptions = scoreOptions;
-        this.selectedScore = null;
     }
 }
 
 
 class Question {
-    constructor(description, options, answer, mark) {
-        this.id = crypto.randomUUID();
+    constructor(description, options, answer, mark, id) {
+        this.id = id || crypto.randomUUID();
         this.description = description;
         this.options = options;
         this.answer = answer;
@@ -145,6 +149,7 @@ export function addProcedureToStation(stationName, description, scoreOptions) {
 
   const procedureItem = new ProcedureItem(description, scoreOptions);
   station.addProcedure(procedureItem);
+  saveStationToLocalStorage(getAllStations());
   return true;
 }
 
@@ -159,13 +164,14 @@ export function addQuestionToStation(stationName, description, options, answer, 
 
   const question = new Question(description, options, answer, mark);
   station.addQuestion(question);
+  saveStationToLocalStorage(getAllStations());
   return true;
 }
 
 
 export function toggleProcedureTimer(stationId) {
 
-  const station = StationManagement.getStationById(stationId );
+  const station = StationManagement.getStationById(stationId);
 
   if (!station) return false;
 

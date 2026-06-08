@@ -1,4 +1,35 @@
 import { getResult } from "../app/result.js";
+import { Notyf } from 'notyf';
+import 'notyf/notyf.min.css';
+
+
+export const notyf = new Notyf({
+    duration: 1000,
+    position: {
+        x: 'right',
+        y: 'top',
+    },
+    types: [
+        {
+        type: 'warning',
+        background: 'orange',
+        icon: {
+            className: 'material-icons',
+            tagName: 'i',
+            text: 'warning'
+        }
+        },
+        {
+        type: 'error',
+        background: 'indianred',
+        duration: 10000,
+        dismissible: true
+        }
+    ]
+    }
+);
+
+
 
 export function formatStr(str) {
     return str.trim().toLocaleLowerCase();
@@ -278,6 +309,51 @@ export function questionCompleted(resultId) {
     result.status.question = "completed";
 
     return true;
+}
+
+
+export function procedureCompleted(resultId) {
+
+    const result = getResult(resultId);
+
+    if(!result) return false;
+
+    result.status.procedure = "completed";
+
+    return true;
+}
+
+
+
+
+
+
+
+export function startProcedureTimer(result, station, timerElement, onTimeUp) {
+    
+    let timeRemaining = result.procedureTimeRemaining
+    
+    timerElement.textContent = formatTime(timeRemaining);
+   
+    const timerId = setInterval(() => {
+       
+        timeRemaining--;
+
+        result.procedureTimeRemaining = timeRemaining;
+
+        timerElement.textContent = formatTime(timeRemaining);
+
+        if(timeRemaining <= 0){
+
+            clearInterval(timerId);
+
+            onTimeUp?.();
+
+        }
+
+    }, 1000);
+
+    return timerId;
 }
 
 

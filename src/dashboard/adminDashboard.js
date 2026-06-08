@@ -1,6 +1,7 @@
-import { saveStation, createStation, getAllStations, getStationById, addProcedureToStation, addQuestionToStation, setProcedureTimerDuration, toggleProcedureTimer, setQuestionTimerDuration, toggleQuestionTimer } from "../app/stationManager.js";
+import { createStation, getAllStations, getStationById, addProcedureToStation, addQuestionToStation, setProcedureTimerDuration, toggleProcedureTimer, setQuestionTimerDuration, toggleQuestionTimer } from "../app/stationManager.js";
 
 import { createUser, getUserById, getAllUsers } from "../app/users.js";
+import { notyf } from "../utilities/utility.js";
 import { renderHomePage } from "./homePage.js";
 
 
@@ -286,9 +287,8 @@ function handleCreateStation(e) {
   const stationDescription = formData.get("stationDescription");
 
   const station = createStation(stationName, stationDescription);
-  const saved = saveStation(station);
-
-  if (saved) {
+  
+  if (station) {
     const adminContent = document.querySelector('#admin-content');
     renderViewStations(adminContent);
     document.querySelector(".modal-overlay").remove();
@@ -897,19 +897,13 @@ function handleAddUser(e){
         admissionNo
     );
 
-
-    const myUser = user;
-    console.log(getUserById(myUser.id))
-
-    alert("User created successfully");
+    if (user) {
+      notyf.success('user created successfully!');
+    }
 
     document.querySelector(".modal-overlay").remove();
 
 }
-
-
-
-
 
 
 

@@ -58,36 +58,18 @@ role);
 }
 
 
-export function getUserById(
-    id
-){
+export function getUserById(id) {
 
-return UserManagement
-.getUsers()
-.find(
-    user=>
-    user.id===id
-);
+    return UserManagement.getUsers().find(user => user.id === id);
 
 }
 
 
-export function getStudentByAdmissionNo(
-    admissionNo
-){
-
-return UserManagement
-.getUsers()
-.find(
-user=>
-
-user.admissionNo===admissionNo
-
-&&
-
-user.role==="student"
-);
-
+export function getStudentByAdmissionNo(admissionNo){ 
+    return UserManagement.getUsers().find(
+     user=>user.admissionNo === admissionNo &&
+        user.role==="student"
+    );
 }
 
 

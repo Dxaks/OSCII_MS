@@ -149,8 +149,6 @@ export function renderAssessmentInfo(
             return;
         } 
         
-    // const existingResult = getStudentResults(user.id, station.id)
-
     if(existingResult) {
 
         if(existingResult.status.question === "completed") {

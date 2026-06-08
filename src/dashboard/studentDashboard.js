@@ -6,8 +6,6 @@ import { renderLoginPage } from "./loginPage.js";
 
 export function renderQuestionPage(container, station, user, type, existingResult) {
 
-    // const result = existingResult ?? createResult(user.id, station.id);
-
     let result;
 
     if(existingResult) {
@@ -66,8 +64,6 @@ export function renderQuestionPage(container, station, user, type, existingResul
         </div>
     `;
 
-    // let currentQuestionIndex = 0;
-    // const saveAnswers = result.studentAnswers;
 
     renderQuestion(container.querySelector(".question-content"), station, result);
 
@@ -139,11 +135,10 @@ export function renderQuestionPage(container, station, user, type, existingResul
 
         });
 
-    }
-);
+    });
 
     // timer logic
-    const timer = timerRunner(container, container.querySelector(".question-timer"), station, user, result);
+    const timer = runQuestionTimer(container, container.querySelector(".question-timer"), station, user, result);
 
     // const timerElement = container.querySelector(".question-timer");
 
@@ -400,7 +395,7 @@ function renderResultPage(container, user, station, result) {
 }
 
 
-function timerRunner(container, timerElement, station, user, result) {
+function runQuestionTimer(container, timerElement, station, user, result) {
 
     if (station.questionTimer.enabled) {
 
