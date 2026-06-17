@@ -1,57 +1,48 @@
 import { getResult } from "../app/result.js";
-import { Notyf } from 'notyf';
-import 'notyf/notyf.min.css';
-
+import { Notyf } from "notyf";
+import "notyf/notyf.min.css";
+import { addResultToLocalStorage } from "../app/localStorage.js";
 
 export const notyf = new Notyf({
-    duration: 1000,
-    position: {
-        x: 'right',
-        y: 'top',
+  duration: 1000,
+  position: {
+    x: "center",
+    y: "top",
+  },
+  types: [
+    {
+      type: "warning",
+      background: "orange",
+      icon: {
+        className: "material-icons",
+        tagName: "i",
+        text: "warning",
+      },
     },
-    types: [
-        {
-        type: 'warning',
-        background: 'orange',
-        icon: {
-            className: 'material-icons',
-            tagName: 'i',
-            text: 'warning'
-        }
-        },
-        {
-        type: 'error',
-        background: 'indianred',
-        duration: 10000,
-        dismissible: true
-        }
-    ]
-    }
-);
-
-
+    {
+      type: "error",
+      background: "indianred",
+      duration: 10000,
+      dismissible: true,
+    },
+  ],
+});
 
 export function formatStr(str) {
-    return str.trim().toLocaleLowerCase();
+  return str.trim().toLocaleLowerCase();
 }
 
-
-
 export function showSubmitDialog({
-    totalQuestions,
-    answeredQuestions,
-    unansweredQuestions,
-    onConfirm
+  totalQuestions,
+  answeredQuestions,
+  unansweredQuestions,
+  onConfirm,
 }) {
+  const dialog = document.createElement("dialog");
 
-    const dialog =
-    document.createElement("dialog");
+  dialog.classList.add("submit-dialog");
 
-    dialog.classList.add(
-        "submit-dialog"
-    );
-
-    dialog.innerHTML = `
+  dialog.innerHTML = `
 
         <div class="submit-dialog-content">
 
@@ -101,44 +92,27 @@ export function showSubmitDialog({
 
     `;
 
-    document.body.appendChild(dialog);
+  document.body.appendChild(dialog);
 
-    dialog.showModal();
+  dialog.showModal();
 
-    dialog.querySelector(".cancel-dialog-btn")
-    .addEventListener("click", () => {
+  dialog.querySelector(".cancel-dialog-btn").addEventListener("click", () => {
+    dialog.close();
+    dialog.remove();
+  });
 
-        dialog.close();
-        dialog.remove();
+  dialog.querySelector(".submit-dialog-btn").addEventListener("click", () => {
+    dialog.close();
+    dialog.remove();
 
-        }
-    );
-
-    dialog.querySelector(".submit-dialog-btn")
-    .addEventListener("click", () => {
-
-            dialog.close();
-            dialog.remove();
-
-            onConfirm?.();
-
-        }
-    );
-
+    onConfirm?.();
+  });
 }
 
+export function showConfirmDialog({ title, message, onConfirm }) {
+  const dialog = document.createElement("dialog");
 
-
-export function showConfirmDialog({
-    title,
-    message,
-    onConfirm
-}) {
-
-    const dialog =
-    document.createElement("dialog");
-
-    dialog.innerHTML = `
+  dialog.innerHTML = `
 
         <div class="confirm-dialog">
 
@@ -168,44 +142,27 @@ export function showConfirmDialog({
 
     `;
 
-    document.body.appendChild(dialog);
+  document.body.appendChild(dialog);
 
-    dialog.showModal();
+  dialog.showModal();
 
-    dialog.querySelector(".cancel-btn")
-    .addEventListener("click", () => {
+  dialog.querySelector(".cancel-btn").addEventListener("click", () => {
+    dialog.close();
+    dialog.remove();
+  });
 
-            dialog.close();
-            dialog.remove();
+  dialog.querySelector(".confirm-btn").addEventListener("click", () => {
+    dialog.close();
+    dialog.remove();
 
-        }
-    );
-
-    dialog
-    .querySelector(".confirm-btn")
-    .addEventListener(
-        "click",
-        () => {
-
-            dialog.close();
-            dialog.remove();
-
-            onConfirm?.();
-
-        }
-    );
+    onConfirm?.();
+  });
 }
 
+export function showNoticeDialog({ title, message }) {
+  const dialog = document.createElement("dialog");
 
-export function showNoticeDialog({
-    title,
-    message
-}) {
-
-    const dialog =
-    document.createElement("dialog");
-
-    dialog.innerHTML = `
+  dialog.innerHTML = `
 
         <div class="notice-dialog">
 
@@ -232,128 +189,95 @@ export function showNoticeDialog({
 
     `;
 
-    document.body.appendChild(
-        dialog
-    );
+  document.body.appendChild(dialog);
 
-    dialog.showModal();
+  dialog.showModal();
 
-    dialog
-    .querySelector(".notice-btn")
-    .addEventListener(
-        "click",
-        () => {
-
-            dialog.close();
-            dialog.remove();
-
-        }
-    );
-
+  dialog.querySelector(".notice-btn").addEventListener("click", () => {
+    dialog.close();
+    dialog.remove();
+  });
 }
-
 
 function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
 
-    const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
 
-    const remainingSeconds = seconds % 60;
-  
-    return (
-            `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
-    );        
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
-
-
 
 export function startQuestionTimer(result, station, timerElement, onTimeUp) {
-    
-    console.log(timerElement)
-    let timeRemaining = result.timeRemaining;
-    
-    console.log(formatTime(timeRemaining));
+  let timeRemaining = result.timeRemaining;
+
+  timerElement.textContent = formatTime(timeRemaining);
+
+  const timerId = setInterval(() => {
+    timeRemaining--;
+
+    result.timeRemaining = timeRemaining;
 
     timerElement.textContent = formatTime(timeRemaining);
-   
-    const timerId = setInterval(() => {
-       
-        timeRemaining--;
 
-        result.timeRemaining = timeRemaining
-        console.log(timeRemaining)
-        console.log(document.querySelector(".question-timer") === timerElement);
+    if (timeRemaining <= 0) {
+      clearInterval(timerId);
 
-        timerElement.textContent = formatTime(timeRemaining);
+      onTimeUp?.();
+    }
+  }, 1000);
 
-        if(timeRemaining <= 0){
-
-            clearInterval(timerId);
-
-            onTimeUp?.();
-
-        }
-
-    }, 1000);
-
-    return timerId;
+  return timerId;
 }
-
-
 
 export function questionCompleted(resultId) {
+  const result = getResult(resultId);
 
-    const result = getResult(resultId);
+  if (!result) return false;
 
-    if(!result) return false;
+  result.status.question = "completed";
 
-    result.status.question = "completed";
-
-    return true;
+  return true;
 }
-
 
 export function procedureCompleted(resultId) {
+  const result = getResult(resultId);
 
-    const result = getResult(resultId);
+  if (!result) return false;
 
-    if(!result) return false;
+  result.status.procedure = "completed";
 
-    result.status.procedure = "completed";
-
-    return true;
+  return true;
 }
-
-
-
-
-
-
 
 export function startProcedureTimer(result, station, timerElement, onTimeUp) {
-    
-    let timeRemaining = result.procedureTimeRemaining
-    
+  let timeRemaining = result.procedureTimeRemaining;
+
+  timerElement.textContent = formatTime(timeRemaining);
+
+  const timerId = setInterval(() => {
+    timeRemaining--;
+
+    result.procedureTimeRemaining = timeRemaining;
+
     timerElement.textContent = formatTime(timeRemaining);
-   
-    const timerId = setInterval(() => {
-       
-        timeRemaining--;
 
-        result.procedureTimeRemaining = timeRemaining;
+    if (timeRemaining <= 0) {
+      clearInterval(timerId);
 
-        timerElement.textContent = formatTime(timeRemaining);
+      onTimeUp?.();
+    }
+  }, 1000);
 
-        if(timeRemaining <= 0){
-
-            clearInterval(timerId);
-
-            onTimeUp?.();
-
-        }
-
-    }, 1000);
-
-    return timerId;
+  return timerId;
 }
 
+export function updateResult() {
+  addResultToLocalStorage();
+}
 
+export function updateResultAtRegularInterval() {
+  const timerId = setInterval(() => {
+    updateResult();
+  }, 10000);
+  return timerId;
+}

@@ -3,23 +3,22 @@ import { renderHomePage } from "./homePage.js";
 import { renderLoginPage } from "./loginPage.js";
 
 export function renderMainMenu(container) {
+  container.innerHTML = "";
 
-    container.innerHTML = "";
+  const backBtn = document.createElement("button");
+  backBtn.className = "back-btn";
+  backBtn.textContent = "← Back";
 
-    const backBtn = document.createElement("button");
-      backBtn.className = "back-btn";
-      backBtn.textContent = "← Back";
-    
-      backBtn.addEventListener("click", () => {
-        renderHomePage(container);
-      });
-    
-    container.appendChild(backBtn);
+  backBtn.addEventListener("click", () => {
+    renderHomePage(container);
+  });
 
-    const section = document.createElement("section");
-    section.className = "main-menu-page";
+  container.appendChild(backBtn);
 
-    section.innerHTML = `
+  const section = document.createElement("section");
+  section.className = "main-menu-page";
+
+  section.innerHTML = `
         <h1>
 
         Main Menu
@@ -33,14 +32,13 @@ export function renderMainMenu(container) {
         </div>
     `;
 
-    container.appendChild(section);
+  container.appendChild(section);
 
-    const buttonContainer = section.querySelector(".main-menu-buttons");
+  const buttonContainer = section.querySelector(".main-menu-buttons");
 
-    const stations = Object.values(getAllStations());
+  const stations = Object.values(getAllStations());
 
-    stations.forEach((station) => {
-
+  stations.forEach((station) => {
     const procedureBtn = document.createElement("button");
 
     procedureBtn.className = "menu-btn procedure-btn";
@@ -50,7 +48,6 @@ export function renderMainMenu(container) {
     procedureBtn.dataset.type = "procedure";
 
     procedureBtn.dataset.stationId = station.id;
-
 
     const questionBtn = document.createElement("button");
 
@@ -62,25 +59,20 @@ export function renderMainMenu(container) {
 
     questionBtn.dataset.stationId = station.id;
 
-
-    buttonContainer.append(procedureBtn); 
+    buttonContainer.append(procedureBtn);
     buttonContainer.append(questionBtn);
+  });
 
-    });
+  buttonContainer.addEventListener("click", (e) => {
+    const btn = e.target.closest(".menu-btn");
 
-    
-    buttonContainer.addEventListener("click", (e) => {
+    if (!btn) {
+      return;
+    }
 
-      const btn = e.target.closest(".menu-btn");
+    const stationId = btn.dataset.stationId;
+    const type = btn.dataset.type;
 
-      if (!btn) {
-        return
-      }
-
-      const stationId = btn.dataset.stationId;
-      const type = btn.dataset.type;
-
-      renderLoginPage(container, stationId, type)
-    });
-
-};
+    renderLoginPage(container, stationId, type);
+  });
+}

@@ -6,12 +6,10 @@ import { showNoticeDialog } from "../utilities/utility.js";
 import { getStudentResults } from "../app/result.js";
 import { renderProcedureInfo } from "./procedureAssessmentInfo.js";
 
-
 export function renderLoginPage(container, stationId, type) {
+  const station = getStationById(stationId);
 
-    const station = getStationById(stationId);
-
-container.innerHTML=`
+  container.innerHTML = `
 
 <div class="login-page">
 
@@ -26,11 +24,9 @@ container.innerHTML=`
             <h1>
 
             ${
-                type === "procedure"
-                ?
-                `Procedure ${station.name}`
-                :
-                `Question ${station.name}`
+              type === "procedure"
+                ? `Procedure ${station.name}`
+                : `Question ${station.name}`
             }
 
             </h1>
@@ -92,78 +88,64 @@ container.innerHTML=`
 
 `;
 
-setupLoginEvents(container, stationId, type);
-
+  setupLoginEvents(container, stationId, type);
 }
 
-
-
 function setupLoginEvents(container, stationId, type) {
+  const form = document.querySelector(".login-form");
 
-    const form = document.querySelector(".login-form");
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
 
-    form.addEventListener("submit", (e)=>{
+    const formData = new FormData(e.target);
 
-        e.preventDefault()
+    const username = formData.get("username");
+    const password = formData.get("password");
 
-        const formData = new FormData(e.target);
+    const station = getStationById(stationId);
 
-        const username = formData.get('username');
-        const password = formData.get('password');
+    const user = validateUser(username, password);
 
-        const station = getStationById(stationId);
+    if (!user) {
+      showNoticeDialog({
+        title: "Warning !!!",
+        message: "Invalid username or password.",
+      });
 
-        const user = validateUser(username, password);
-        
-        if(!user) {
-            showNoticeDialog({
-                title: "Warning !!!",
-                message: "Invalid username or password."
-            });
+      return;
+    }
 
-        return
+    if (user.role === "moderator" && type === "question") {
+      showNoticeDialog({
+        title: "Access Denied !!!",
+        message: "You are not Authorised to View Question Station",
+      });
+      return;
+    }
 
-        } 
-        
-        if(user.role === "moderator" && type === "question") {
-            showNoticeDialog({
-                title: "Access Denied !!!",
-                message: "You are not Authorised to View Question Station"
-            });
-            return
-        }
+    if (user.role === "student" && type === "procedure") {
+      showNoticeDialog({
+        title: "Access Denied !!!",
+        message: "You are not Authorised to View Procedure Station",
+      });
+      return;
+    }
 
-        if(user.role === "student" && type === "procedure") {
-            showNoticeDialog({
-                title: "Access Denied !!!",
-                message: "You are not Authorised to View Procedure Station"
-            });
-            return
-        }
-       
-       
-       
-        if(user.role === "student") {
+    if (user.role === "student") {
+      const existingResult = getStudentResults(user.id, station.id);
+      renderAssessmentInfo(container, user, station, type, existingResult);
+    }
 
-            const existingResult = getStudentResults(user.id, station.id);
-            renderAssessmentInfo(container, user, station, type, existingResult);
-        }
+    if (user.role === "moderator") {
+      renderProcedureInfo(container, station, user, type);
+    }
+  });
 
-         if(user.role === "moderator") {
-            renderProcedureInfo(container, station, user, type)
-        }
-
-
-    });
-
-    const bactToMenu = container.querySelector('.back-btn');
-    bactToMenu.addEventListener("click", (e) => {
-
-        const targetBtn = e.target.closest(".back-btn");
-        if (targetBtn) {
-
-            renderMainMenu(container)
-            
-        }
-    }) 
+  const bactToMenu = container.querySelector(".back-btn");
+  bactToMenu.addEventListener("click", (e) => {
+    const targetBtn = e.target.closest(".back-btn");
+    if (targetBtn) {
+      renderMainMenu(container);
+    }
+  });
 }

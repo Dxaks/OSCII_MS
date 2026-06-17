@@ -1,13 +1,31 @@
-import { createStation, getAllStations, getStationById, addProcedureToStation, addQuestionToStation, setProcedureTimerDuration, toggleProcedureTimer, setQuestionTimerDuration, toggleQuestionTimer } from "../app/stationManager.js";
-
-import { createUser, getUserById, getAllUsers } from "../app/users.js";
-import { notyf } from "../utilities/utility.js";
+import {
+  importProcedureItems,
+  importQuestions,
+  importUsers,
+} from "../app/csvImporter.js";
+import { getAllResults, getStationResults } from "../app/result.js";
+import {
+  createStation,
+  getAllStations,
+  getStationById,
+  addProcedureToStation,
+  addQuestionToStation,
+  setProcedureTimerDuration,
+  toggleProcedureTimer,
+  setQuestionTimerDuration,
+  toggleQuestionTimer,
+  deleteStation,
+} from "../app/stationManager.js";
+import {
+  createUser,
+  getUserById,
+  getAllUsers,
+  deleteUser,
+} from "../app/users.js";
+import { notyf, showConfirmDialog } from "../utilities/utility.js";
 import { renderHomePage } from "./homePage.js";
 
-
-
 export function renderAdminDashboard(container) {
-
   container.innerHTML = `
 
     <button class="back-btn back-to-home" data-admin-action="back-to-home">
@@ -42,20 +60,16 @@ export function renderAdminDashboard(container) {
     </section>
   `;
 
-   setupAdminEvents();
-
+  setupAdminEvents();
 }
-
-
 
 // second level
 function setupAdminEvents() {
-
   const container = document.querySelector("#content");
-  const backBtn = container.querySelector(".back-to-home")
+  const backBtn = container.querySelector(".back-to-home");
   backBtn.addEventListener("click", () => {
     renderHomePage(container);
-  })
+  });
 
   const adminMenu = document.querySelector(".admin-menu");
   const adminContent = document.querySelector("#admin-content");
@@ -67,7 +81,7 @@ function setupAdminEvents() {
     const page = btn.dataset.adminAction;
 
     if (page === "create-station") {
-        showCreateStationModal();
+      showCreateStationModal();
     }
 
     if (page === "view-stations") {
@@ -79,66 +93,69 @@ function setupAdminEvents() {
     }
 
     if (page === "add-user") {
-        showAddUserModal();
+      showAddUserModal();
     }
   });
 }
 
-
-
 // view stations screen
 function renderViewStations(container) {
-  
-  container.innerHTML = '';
+  container.innerHTML = "";
 
-  const section = document.createElement('section');
-  section.className = 'admin-page';
+  const section = document.createElement("section");
+  section.className = "admin-page";
 
-  const allStations = document.createElement('h2');
-  allStations.textContent = 'All Stations';
-  section.appendChild(allStations)
+  const allStations = document.createElement("h2");
+  allStations.textContent = "All Stations";
+  section.appendChild(allStations);
 
-  const stationList = document.createElement('div');
-  stationList.className = 'station-list';
-  
+  const stationList = document.createElement("div");
+  stationList.className = "station-list";
+
   const stations = Object.values(getAllStations());
 
   stations.forEach((station) => {
-    const article = document.createElement('article');
-    article.className = 'station-card'
+    const article = document.createElement("article");
+    article.className = "station-card";
 
-    const stationHeader = document.createElement('h3');
-    stationHeader.className = 'station-card-header';
-    stationHeader.textContent = `${station.name}`;
-    article.appendChild(stationHeader)
+    const stationHeader = document.createElement("div");
+    stationHeader.className = "station-card-header";
+    article.appendChild(stationHeader);
 
-    const stationDescription = document.createElement('p');
-    stationDescription.className = 'station-description';
+    const stationTitle = document.createElement("h3");
+    stationTitle.className = "station-card-header";
+    stationTitle.textContent = `${station.name}`;
+    stationHeader.appendChild(stationTitle);
+
+    const editBtn = document.createElement("button");
+    editBtn.className = "station-card-edit-btn";
+    editBtn.textContent = "delete";
+    stationHeader.appendChild(editBtn);
+
+    const stationDescription = document.createElement("p");
+    stationDescription.className = "station-description";
     stationDescription.textContent = `${station.description}`;
-    article.appendChild(stationDescription)
+    article.appendChild(stationDescription);
 
-    const enterStationBtn = document.createElement('button');
-    enterStationBtn.className = 'enter-station-btn';
-    enterStationBtn.textContent = 'Enter Station'
+    const enterStationBtn = document.createElement("button");
+    enterStationBtn.className = "enter-station-btn";
+    enterStationBtn.textContent = "Enter Station";
     enterStationBtn.dataset.station = station.id;
-    article.appendChild(enterStationBtn)
+    article.appendChild(enterStationBtn);
 
-    enterStationBtn.addEventListener('click', () => {
-      const content = document.querySelector('#content');
+    enterStationBtn.addEventListener("click", () => {
+      const content = document.querySelector("#content");
       renderStationPage(content, station.id);
     });
+
+    showStationDeleteDialog(container, article, station);
 
     stationList.appendChild(article);
   });
 
-  section.appendChild(stationList)
-  container.appendChild(section)
-};
-
-
-
-
-
+  section.appendChild(stationList);
+  container.appendChild(section);
+}
 
 // html modal
 
@@ -170,12 +187,11 @@ function openModal(title, formHtml) {
   });
 }
 
-
-
-
 // create station modal
 function showCreateStationModal() {
-  openModal("Create Station", `
+  openModal(
+    "Create Station",
+    `
     <form id="create-station-form" class="dashboard-form">
       <div class="form-group">
         <label>Station Name</label>
@@ -197,19 +213,18 @@ function showCreateStationModal() {
         Save Station
       </button>
     </form>
-  `);
+  `,
+  );
 
-  const form = document.querySelector('#create-station-form');
-  form.addEventListener('submit', handleCreateStation)
+  const form = document.querySelector("#create-station-form");
+  form.addEventListener("submit", handleCreateStation);
 }
-
-
-
-
 
 // add user modal
 function showAddUserModal() {
-  openModal("Add User", `
+  openModal(
+    "Add User",
+    `
     <form id="add-user-form" class="dashboard-form">
 
     <div class="form-group">
@@ -255,28 +270,21 @@ function showAddUserModal() {
         Add User
       </button>
     </form>
-  `);
-
+  `,
+  );
 
   const roleSelect = document.querySelector(".role-selector");
   const admissionWrapper = document.querySelector(".admission-wrapper");
- 
-  roleSelect.addEventListener("change", ()=>{
 
-    admissionWrapper.style.display = roleSelect.value==="student"
-    ? "block"
-    : "none";
-
+  roleSelect.addEventListener("change", () => {
+    admissionWrapper.style.display =
+      roleSelect.value === "student" ? "block" : "none";
   });
 
   const form = document.querySelector("#add-user-form");
- 
+
   form.addEventListener("submit", handleAddUser);
-
 }
-
-
-
 
 function handleCreateStation(e) {
   e.preventDefault();
@@ -287,22 +295,18 @@ function handleCreateStation(e) {
   const stationDescription = formData.get("stationDescription");
 
   const station = createStation(stationName, stationDescription);
-  
+
   if (station) {
-    const adminContent = document.querySelector('#admin-content');
+    const adminContent = document.querySelector("#admin-content");
     renderViewStations(adminContent);
     document.querySelector(".modal-overlay").remove();
   }
 }
 
-
-
-
 function renderStationPage(container, stationId) {
-
   const station = getStationById(stationId);
-  
-  container.innerHTML = '';
+
+  container.innerHTML = "";
 
   const backBtn = document.createElement("button");
   backBtn.className = "back-btn";
@@ -312,35 +316,35 @@ function renderStationPage(container, stationId) {
     renderAdminDashboard(container);
   });
 
-  const section = document.createElement('section');
-  section.className = 'station-management-page';
+  const section = document.createElement("section");
+  section.className = "station-management-page";
   section.appendChild(backBtn);
 
   // station title
-  const heading = document.createElement('h2');
+  const heading = document.createElement("h2");
 
   heading.textContent = station.name;
 
   section.appendChild(heading);
 
   // procedure box
-  const procedureBox = document.createElement('div');
-  procedureBox.className = 'station-box';
+  const procedureBox = document.createElement("div");
+  procedureBox.className = "station-box";
 
   procedureBox.innerHTML = `
     <h3>Procedure ${station.name}</h3>
     <p>${station.procedureItems.length} Procedure Items</p>
 
     <ul class="procedure-list">
-      ${
-        station.procedureItems
-          .map((item) => `
+      ${station.procedureItems
+        .map(
+          (item, index) => `
             <li>
-              ${item.description}
+              ${index + 1}. ${item.description}
             </li>
-          `)
-          .join("")
-      }
+          `,
+        )
+        .join("")}
     </ul>
 
     <label class="timer-toggle">
@@ -348,18 +352,12 @@ function renderStationPage(container, stationId) {
     <input
       type="checkbox"
       class="procedure-timer-toggle"
-      ${
-        station.procedureTimer.enabled
-          ? "checked"
-          : ""
-      }>
+      ${station.procedureTimer.enabled ? "checked" : ""}>
       Enable Procedure Timer
     </label>
 
     <div class="timer-input-wrapper" style="
-      ${!station.procedureTimer.enabled
-      ? "display:none"
-      : ""}
+      ${!station.procedureTimer.enabled ? "display:none" : ""}
      ">
 
       <input
@@ -367,58 +365,52 @@ function renderStationPage(container, stationId) {
         class="procedure-timer-input"
         placeholder="Minutes"
 
-        value="${
-          station.procedureTimer.duration || ""
-        }">
+        value="${station.procedureTimer.duration || ""}">
         <button class="save-timer-btn">
           save
         </button>
     </div>
 
-    <button class="add-procedure-btn">
-      Add Procedure Item
-    </button>
+    <div>
+        <button class="add-procedure-btn"> Add Procedure Item </button>
+
+        <div class="procedure-station-uploader"> 
+          <input type="file" id="procedure-import" name="procedure-import" accept=".csv">
+          <button class="upload-procedure-btn">Import procedure</button>
+        </div>
+      
+      </div>
   `;
 
   const addProcedureBtn = procedureBox.querySelector(".add-procedure-btn");
 
   addProcedureBtn.addEventListener("click", () => {
     showProcedureModal(station.id, container);
-
   });
-  
+
   const procedureToggle = procedureBox.querySelector(".procedure-timer-toggle");
 
   const procedureInput = procedureBox.querySelector(".procedure-timer-input");
-  
+
   procedureToggle.addEventListener("change", () => {
-      toggleProcedureTimer(station.id);
+    toggleProcedureTimer(station.id);
 
-        if (!procedureToggle.checked) {
-          setProcedureTimerDuration(station.id, 0)
-        }
-        renderStationPage(container, station.id);
-
-      }
-     
-    );
-
+    if (!procedureToggle.checked) {
+      setProcedureTimerDuration(station.id, 0);
+    }
+    renderStationPage(container, station.id);
+  });
 
   procedureInput.addEventListener("change", () => {
-
     const seconds = Number(procedureInput.value);
-    console.log(seconds)
 
     setProcedureTimerDuration(station.id, seconds);
-
-    }
-  );
-
+  });
 
   // question box
-  const questionBox = document.createElement('div');
+  const questionBox = document.createElement("div");
 
-  questionBox.className = 'station-box';
+  questionBox.className = "station-box";
 
   questionBox.innerHTML = `
     <h3>Question ${station.name}</h3>
@@ -426,28 +418,15 @@ function renderStationPage(container, stationId) {
 
     <ul class="question-list">
 
-      ${
-        station.questions
-          .map((question) => `
+      ${station.questions
+        .map(
+          (question, index) => `
             <li>
-
-              <strong>
-                ${question.description}
-              </strong>
-
-              <p>
-                Answer:
-                ${question.answer}
-              </p>
-
-              <span>
-                ${question.mark} marks
-              </span>
-
+                ${index + 1}. ${question.description}
             </li>
-          `)
-          .join("")
-      }
+          `,
+        )
+        .join("")}
 
     </ul>
 
@@ -456,18 +435,12 @@ function renderStationPage(container, stationId) {
     <input
       type="checkbox"
       class="question-timer-toggle"
-      ${
-        station.questionTimer.enabled
-          ? "checked"
-          : ""
-      }>
+      ${station.questionTimer.enabled ? "checked" : ""}>
       Enable Question Timer
     </label>
 
     <div class="timer-input-wrapper" style="
-      ${!station.questionTimer.enabled
-      ? "display:none"
-      : ""}
+      ${!station.questionTimer.enabled ? "display:none" : ""}
      ">
 
       <input
@@ -475,54 +448,50 @@ function renderStationPage(container, stationId) {
         class="question-timer-input"
         placeholder="Minutes"
 
-        value="${
-          station.questionTimer.duration || ""
-        }">
+        value="${station.questionTimer.duration || ""}">
 
         <button class="save-timer-btn">
           save
         </button>
       </div>
 
-    <button class="add-question-btn">
-      Add Question
-    </button>
+      <div>
+
+        <button class="add-question-btn"> Add Question </button>
+
+        <div class="question-station-uploader"> 
+          <input type="file" id="question-import" name="question-import" accept=".csv">
+          <button class="upload-question-btn">Import question</button>
+        </div>
+      
+      </div>
   `;
 
+  // add question to the station
   const addQuestionBtn = questionBox.querySelector(".add-question-btn");
 
   addQuestionBtn.addEventListener("click", () => {
-    showQuestionModal(station.id, container)
-
+    showQuestionModal(station.id, container);
   });
-
 
   const questionToggle = questionBox.querySelector(".question-timer-toggle");
 
   const questionInput = questionBox.querySelector(".question-timer-input");
-  
+
   questionToggle.addEventListener("change", () => {
-      toggleQuestionTimer(station.id);
+    toggleQuestionTimer(station.id);
 
-        if (!questionToggle.checked) {
-          setQuestionTimerDuration(station.id, 0)
-        }
-        renderStationPage(container, station.id);
-
-      }
-     
-    );
+    if (!questionToggle.checked) {
+      setQuestionTimerDuration(station.id, 0);
+    }
+    renderStationPage(container, station.id);
+  });
 
   questionInput.addEventListener("change", () => {
-
     const seconds = Number(questionInput.value);
-    console.log(seconds)
-    console.log(station)
 
     setQuestionTimerDuration(station.id, seconds);
-    
-    }
-  );
+  });
 
   const grid = document.createElement("div");
   grid.className = "station-grid";
@@ -531,9 +500,12 @@ function renderStationPage(container, stationId) {
   grid.appendChild(questionBox);
   section.appendChild(grid);
 
-
   const resultSection = document.createElement("section");
   resultSection.className = "station-result-section";
+
+  // see if there is result in this station and display it
+  const results = getStationResults(station.id);
+
   resultSection.innerHTML = ` 
   
   <div class="result-header">
@@ -575,20 +547,8 @@ function renderStationPage(container, stationId) {
 
               </thead>
 
-              <tbody>
-
-                  <tr>
-
-                      <td>Loading...</td>
-                      <td>Loading...</td>
-                      <td>Loading...</td>
-                      <td>Loading...</td>
-                      <td>Loading...</td>
-                      <td>Loading...</td>
-                      <td>Loading...</td>
-
-                  </tr>
-
+              <tbody class="result-row">
+ 
               </tbody>
 
           </table>
@@ -597,8 +557,11 @@ function renderStationPage(container, stationId) {
 
   </div>
   `;
+
+  displayResult(station, resultSection.querySelector("tbody"));
+
   section.appendChild(resultSection);
-  
+
   const resultHeader = resultSection.querySelector(".result-header");
 
   const resultContent = resultSection.querySelector(".result-content");
@@ -606,30 +569,54 @@ function renderStationPage(container, stationId) {
   const arrow = resultSection.querySelector(".result-arrow");
 
   resultContent.style.display = "none";
-  arrow.addEventListener("click", ()=>{
+  arrow.addEventListener("click", () => {
+    const isHidden = resultContent.style.display === "none";
 
-      const isHidden = resultContent.style.display === "none";
+    resultContent.style.display = isHidden ? "block" : "none";
 
-      resultContent.style.display = isHidden ? "block" : "none";
-
-      arrow.textContent = isHidden ? "▲" : "▼";
-
+    arrow.textContent = isHidden ? "▲" : "▼";
   });
 
-
   container.appendChild(section);
+
+  // bulk input questions to the station
+  const stationQuestionUploader = container.querySelector(
+    ".question-station-uploader",
+  );
+
+  stationQuestionUploader.addEventListener("click", (e) => {
+    if (e.target.closest(".upload-question-btn")) {
+      const csvFile = document.querySelector("#question-import");
+      if (csvFile.files.length === 0) return;
+
+      const question = csvFile.files[0];
+
+      importQuestions(question, station.name, () => {
+        renderStationPage(container, stationId);
+      });
+    }
+  });
+
+  // bulk input procedure items to the station
+  const stationProcedureUploader = container.querySelector(
+    ".procedure-station-uploader",
+  );
+
+  stationProcedureUploader.addEventListener("click", (e) => {
+    if (e.target.closest(".upload-procedure-btn")) {
+      const csvFile = document.querySelector("#procedure-import");
+      if (csvFile.files.length === 0) return;
+
+      const procedureItem = csvFile.files[0];
+
+      importProcedureItems(procedureItem, station.name, () => {
+        renderStationPage(container, stationId);
+      });
+    }
+  });
 }
 
-
-
-
-
-
-
-
-
 function showProcedureModal(stationId, container) {
-
   const overlay = document.createElement("div");
 
   overlay.className = "modal-overlay";
@@ -672,34 +659,20 @@ function showProcedureModal(stationId, container) {
   const form = overlay.querySelector("#procedure-form");
 
   const closeModal = overlay.querySelector(".close-modal-btn");
-  closeModal.addEventListener('click', (e) => {
-
+  closeModal.addEventListener("click", (e) => {
     const event = e.target;
 
     if (event == closeModal) {
-
       overlay.remove();
-
     }
-  })
+  });
 
   form.addEventListener("submit", (e) => {
     handleProcedureSubmit(e, stationId, container);
-
   });
 }
 
-
-
-
-
-
-
-
-
-
 function handleProcedureSubmit(e, stationId, container) {
-
   e.preventDefault();
 
   const formData = new FormData(e.target);
@@ -711,17 +684,13 @@ function handleProcedureSubmit(e, stationId, container) {
   const station = getStationById(stationId);
 
   addProcedureToStation(station.name, description, scoreOptions);
-  
+
   document.querySelector(".modal-overlay").remove();
 
   renderStationPage(container, stationId);
 }
 
-
-
-
 function showQuestionModal(stationId, container) {
-
   const overlay = document.createElement("div");
 
   overlay.className = "modal-overlay";
@@ -796,50 +765,27 @@ function showQuestionModal(stationId, container) {
   document.body.appendChild(overlay);
 
   const closeModal = overlay.querySelector(".close-modal-btn");
-  closeModal.addEventListener('click', (e) => {
-
+  closeModal.addEventListener("click", (e) => {
     const event = e.target;
 
     if (event == closeModal) {
-
       overlay.remove();
-
     }
-  })
+  });
 
   const form = overlay.querySelector("#question-form");
 
   form.addEventListener("submit", (e) => {
-
-    handleQuestionSubmit(
-      e,
-      stationId,
-      container
-    );
-
+    handleQuestionSubmit(e, stationId, container);
   });
 }
 
-
-
-
-
-
-
-
-function handleQuestionSubmit(
-  e,
-  stationId,
-  container
-) {
-
+function handleQuestionSubmit(e, stationId, container) {
   e.preventDefault();
 
-  const formData =
-    new FormData(e.target);
+  const formData = new FormData(e.target);
 
-  const description =
-    formData.get("description");
+  const description = formData.get("description");
 
   const options = [
     formData.get("option1"),
@@ -848,92 +794,69 @@ function handleQuestionSubmit(
     formData.get("option4"),
   ];
 
-  const answer =
-    formData.get("answer");
+  const answer = formData.get("answer");
 
-  const mark =
-    Number(formData.get("mark"));
+  const mark = Number(formData.get("mark"));
 
-  const station =
-    getStationById(stationId);
+  const station = getStationById(stationId);
 
-  addQuestionToStation(
-    station.name,
-    description,
-    options,
-    answer,
-    mark
-  );
+  addQuestionToStation(station.name, description, options, answer, mark);
 
-  document
-    .querySelector(".modal-overlay")
-    .remove();
+  document.querySelector(".modal-overlay").remove();
 
   renderStationPage(container, stationId);
 }
 
+function handleAddUser(e) {
+  e.preventDefault();
 
+  const formData = new FormData(e.target);
+  const surname = formData.get("surname");
+  const firstname = formData.get("firstname");
+  const username = formData.get("username");
+  const password = formData.get("password");
+  const role = formData.get("role");
+  const admissionNo = role === "student" ? formData.get("admissionNo") : null;
 
-function handleAddUser(e){
+  const user = createUser(
+    surname,
+    firstname,
+    admissionNo,
+    username,
+    password,
+    role,
+    null,
+    null,
+  );
 
-    e.preventDefault();
+  if (user) {
+    notyf.success("user created successfully!");
+  }
 
-    const formData = new FormData(e.target);
-    const surname = formData.get("surname");
-    const firstname = formData.get("firstname");
-    const username = formData.get("username");
-    const password = formData.get("password");
-    const role = formData.get("role");
-    const admissionNo = role === "student" ? formData.get("admissionNo")
-    : null;
-
-
-    const user = createUser(
-        surname,
-        firstname,
-        username,
-        password,
-        role,
-        admissionNo
-    );
-
-    if (user) {
-      notyf.success('user created successfully!');
-    }
-
-    document.querySelector(".modal-overlay").remove();
-
+  document.querySelector(".modal-overlay").remove();
 }
 
+function renderUsers(container) {
+  container.innerHTML = "";
 
+  const section = document.createElement("section");
+  section.className = "admin-page";
 
+  const backBtn = document.createElement("button");
 
-function renderUsers(container){
+  backBtn.className = "back-btn";
 
-    container.innerHTML = "";
+  backBtn.textContent = "← Back";
 
-    const section = document.createElement("section");
-    section.className = "admin-page";
+  backBtn.addEventListener("click", () => {
+    renderAdminDashboard(container);
+  });
 
+  container.appendChild(backBtn);
 
-    const backBtn = document.createElement("button");
+  const users = getAllUsers();
 
-    backBtn.className = "back-btn";
-
-    backBtn.textContent = "← Back";
-
-    backBtn.addEventListener("click", ()=>{
-
-        renderAdminDashboard(container);
-    });
-
-
-    container.appendChild(backBtn);
-    
-
-    const users = getAllUsers();
-
-    section.innerHTML = `
+  section.innerHTML = `
 
     <h2>
         All Users
@@ -974,14 +897,28 @@ function renderUsers(container){
 
     `;
 
-    container.appendChild(section);
+  container.appendChild(section);
 
-    const tbody = section.querySelector("tbody");
+  const uploaderDiv = document.createElement("div");
+  uploaderDiv.className = "uploader";
+  container.appendChild(uploaderDiv);
 
+  const file = document.createElement("input");
+  file.setAttribute("type", "file");
+  file.setAttribute("name", "csv-upload");
+  file.setAttribute("id", "csv-upload");
+  file.setAttribute("accept", ".csv");
+  uploaderDiv.appendChild(file);
 
-    if(users.length===0){
+  const importBtn = document.createElement("button");
+  importBtn.className = "import-btn";
+  importBtn.textContent = "Import user";
+  uploaderDiv.appendChild(importBtn);
 
-        tbody.innerHTML=`
+  const tbody = section.querySelector("tbody");
+
+  if (users.length === 0) {
+    tbody.innerHTML = `
 
         <tr>
 
@@ -996,19 +933,17 @@ function renderUsers(container){
 
             </td>
 
-        </tr>
+        </tr> 
 
         `;
+  }
 
-        return;
-    }
+  users.forEach((user, index) => {
+    if (users.length === 0) return;
 
+    tbody.innerHTML += `
 
-    users.forEach((user, index) => {
-
-        tbody.innerHTML += `
-
-        <tr>
+        <tr class="user-data">
 
             <td>
             ${index + 1}
@@ -1031,16 +966,12 @@ function renderUsers(container){
             </td>
 
             <td>
-            ${
-                user.admissionNo
-                ||
-                "-"
-            }
+            ${user.admissionNo || "-"}
             </td>
 
             <td>
 
-                <button
+            <button
                 class="edit-user-btn"
                 data-user-id=
                 "${user.id}"
@@ -1065,7 +996,78 @@ function renderUsers(container){
         </tr>
 
         `;
+  });
 
+  tbody.addEventListener("click", (e) => {
+    if (e.target.classList.contains("delete-user-btn")) {
+      const userId = e.target.dataset.userId;
+      const user = getUserById(userId);
+
+      showConfirmDialog({
+        title: "delete user",
+        message: `Are you sure you want to delete this user ${user.firstname} ${user.surname} and all it's data`,
+        onConfirm() {
+          deleteUser(userId);
+          renderUsers(container);
+          notyf.success("user removed successfully");
+        },
+      });
+    }
+  });
+
+  // handle user upload
+  const uploadDiv = container.querySelector(".uploader");
+
+  uploadDiv.addEventListener("click", (e) => {
+    if (e.target.closest(".import-btn")) {
+      const csvFile = document.querySelector("#csv-upload");
+      if (csvFile.files.length === 0) return;
+
+      const userList = csvFile.files[0];
+
+      importUsers(userList, () => {
+        renderUsers(container);
+      });
+    }
+  });
+}
+
+function displayResult(station, element) {
+  const result = getStationResults(station.id);
+
+  result.forEach((studentResult) => {
+    const student = getUserById(studentResult.studentId);
+
+    if (student) {
+      element.innerHTML += `
+
+      <tr>
+        <td>${student.firstname} </td>
+        <td>${student.surname} </td>
+        <td>${student.admissionNo} </td>
+        <td>${studentResult.procedureTotal}</td>
+        <td>${studentResult.procedurePercentage}</td>
+        <td>${studentResult.questionTotal}</td>
+        <td>${studentResult.questionPercentage}</td>
+      
+      </tr>
+      
+    `;
+    }
+  });
+}
+
+function showStationDeleteDialog(container, article, station) {
+  const div = article.querySelector(".station-card-edit-btn");
+
+  div.addEventListener("click", () => {
+    showConfirmDialog({
+      title: "Delete",
+      message: `Are you sure you want to delete ${station.name}`,
+      onConfirm() {
+        deleteStation(station.id);
+        renderViewStations(container);
+      },
     });
-
+  });
 }

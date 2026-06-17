@@ -2,17 +2,16 @@ import { renderQuestionPage } from "./studentDashboard.js";
 import { renderLoginPage } from "./loginPage.js";
 import { showConfirmDialog, showNoticeDialog } from "../utilities/utility.js";
 import { getStudentResults } from "../app/result.js";
+import logo from "../asset/icons/account-circle.svg";
 
 export function renderAssessmentInfo(
-    container,
-    user,
-    station,
-    type,
-    existingResult
+  container,
+  user,
+  station,
+  type,
+  existingResult,
 ) {
-
-    
-    container.innerHTML = `
+  container.innerHTML = `
 
         <div class="assessment-info-page">
 
@@ -29,10 +28,7 @@ export function renderAssessmentInfo(
                     <div class="user-image-wrapper">
 
                         <img
-                        src="${
-                            user.image ||
-                            "../assets/default-avatar.png"
-                        }"
+                        src="${user.image || logo}"
 
                         alt="profile image"
 
@@ -53,10 +49,7 @@ export function renderAssessmentInfo(
                         <p>
 
                             Admission No:
-                            ${
-                                user.admissionNo
-                                || "-"
-                            }
+                            ${user.admissionNo || "-"}
 
                         </p>
 
@@ -94,11 +87,9 @@ export function renderAssessmentInfo(
                         <strong>Total ${type}:</strong>
 
                         ${
-                            type==="question"
-                            ?
-                            station.questions.length
-                            :
-                            station.procedureItems.length
+                          type === "question"
+                            ? station.questions.length
+                            : station.procedureItems.length
                         }
 
                     </p>
@@ -108,11 +99,9 @@ export function renderAssessmentInfo(
                         <strong>Time:</strong>
 
                         ${
-                            type==="question"
-                            ?
-                            station.questionTimer.duration
-                            :
-                            station.procedureTimer.duration
+                          type === "question"
+                            ? station.questionTimer.duration
+                            : station.procedureTimer.duration
                         }
                         minutes
 
@@ -135,64 +124,44 @@ export function renderAssessmentInfo(
 
         </div>
     `;
-    
-    const startBtn = container.querySelector(".start-assessment-btn");
 
-    startBtn.addEventListener("click", () => {
+  const startBtn = container.querySelector(".start-assessment-btn");
 
-            if(!station.questions.length){
+  startBtn.addEventListener("click", () => {
+    if (!station.questions.length) {
+      showNoticeDialog({
+        title: "Assessment Unavailable",
+        message:
+          "There are currently no questions available for this assessment.",
+      });
+      return;
+    }
 
-            showNoticeDialog({
-                title: "Assessment Unavailable",
-                message: "There are currently no questions available for this assessment."
-            });
-            return;
-        } 
-        
-    if(existingResult) {
+    if (existingResult) {
+      if (existingResult.status.question === "completed") {
+        showNoticeDialog({
+          title: "Assessment Completed",
 
-        if(existingResult.status.question === "completed") {
-
-             showNoticeDialog({
-
-            title:
-            "Assessment Completed",
-
-            message:
-            "You have already completed this station."
+          message: "You have already completed this station.",
         });
 
         return;
-
-        }
+      }
     }
 
-     renderQuestionPage(container, station, user, type, existingResult);
+    renderQuestionPage(container, station, user, type, existingResult);
+  });
+
+  const logoutBtn = container.querySelector(".logout-btn");
+  logoutBtn.addEventListener("click", () => {
+    showConfirmDialog({
+      title: "Logout",
+
+      message: "Are you sure you want to leave this assessment?",
+
+      onConfirm() {
+        renderLoginPage(container, station.id, type);
+      },
     });
-
-  
-    const logoutBtn = container.querySelector(".logout-btn");
-    logoutBtn.addEventListener("click", () => {
-
-        showConfirmDialog({
-
-            title: "Logout",
-
-            message: "Are you sure you want to leave this assessment?",
-
-            onConfirm() {
-
-                renderLoginPage(
-                    container,
-                    station.id,
-                    type
-                );
-
-            }
-
-        });
-
-    }
-);
-
+  });
 }

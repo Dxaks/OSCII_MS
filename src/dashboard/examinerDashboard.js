@@ -1,22 +1,31 @@
-import { createResult, addProcedureScore, getResult} from "../app/result.js";
-import { startProcedureTimer, procedureCompleted, showConfirmDialog } from "../utilities/utility.js";
+import { createResult, addProcedureScore, getResult } from "../app/result.js";
+import {
+  startProcedureTimer,
+  procedureCompleted,
+  showConfirmDialog,
+  updateResult,
+} from "../utilities/utility.js";
 import { renderLoginPage } from "./loginPage.js";
 import { renderProcedureInfo } from "./procedureAssessmentInfo.js";
 
+export function renderProcedurePage(
+  container,
+  station,
+  student,
+  moderator,
+  existingResult,
+  type,
+) {
+  let result;
 
-export function renderProcedurePage(container, station, student, moderator,
-    existingResult, type) {
+  if (existingResult) {
+    result = existingResult;
+  } else {
+    result = createResult(student.id, station.id);
+    result.procedureTimeRemaining = station.procedureTimer.duration * 60;
+  }
 
-    let result;
-    
-    if(existingResult) {
-        result = existingResult;
-    } else {
-        result = createResult(student.id, station.id);
-        result.procedureTimeRemaining = station.procedureTimer.duration * 60;
-    }
-
-    container.innerHTML = `
+  container.innerHTML = `
 
         <div class="procedure-page">
 
@@ -99,72 +108,68 @@ export function renderProcedurePage(container, station, student, moderator,
         </div>
     `;
 
+  renderProcedureItems(
+    container.querySelector(".procedure-items"),
+    station,
+    result,
+  );
 
-    renderProcedureItems(
-        container.querySelector(".procedure-items"), station, result);
+  const timer = runProcedureTimer(
+    container,
+    container.querySelector(".procedure-timer"),
+    station,
+    student,
+    result,
+    moderator,
+    type,
+  );
 
-    const timer = runProcedureTimer(container, container.querySelector(".procedure-timer"), station, student, result, moderator, type);
+  const logoutBtn = container.querySelector(".logout-btn");
+  logoutBtn.addEventListener("click", () => {
+    showConfirmDialog({
+      title: "Logout",
+      message: "Are you sure you want to leave the current student assessment?",
 
-    const logoutBtn = container.querySelector(".logout-btn");
-    logoutBtn.addEventListener("click", () => {
+      onConfirm() {
+        updateResult();
 
-        showConfirmDialog({
-            title: "Logout",
-            message: "Are you sure you want to leave the current student assessment?",
+        clearInterval(timer);
 
-            onConfirm() {
-
-                clearInterval(timer)
-
-                renderProcedureInfo(
-                    container,
-                    station,
-                    moderator,
-                    type
-                );
-            }
-        });
+        renderProcedureInfo(container, station, moderator, type);
+      },
     });
+  });
 
+  const submitBtn = container.querySelector(".submit-procedure-btn");
+  submitBtn.addEventListener("click", (e) => {
+    showConfirmDialog({
+      title: "Submit Assessment",
 
-    const submitBtn = container.querySelector(".submit-procedure-btn");
-    submitBtn.addEventListener("click", (e) => {
+      message: "Are you sure you to submit this assessment?",
 
-        console.log("heyyyyyy")
-        showConfirmDialog({
+      onConfirm() {
+        updateResult();
 
-            title: "Submit Assessment",
-
-            message: "Are you sure you to submit this assessment?",
-
-            onConfirm() {
-
-                formulateEachProcedureScore(station, result);
-                procedureCompleted(result.id)
-                clearInterval(timer);
-                renderProcedureInfo(container, station, moderator, type);
-            }
-        });
-    })
-
+        formulateEachProcedureScore(station, result);
+        procedureCompleted(result.id);
+        clearInterval(timer);
+        renderProcedureInfo(container, station, moderator, type);
+      },
+    });
+  });
 }
 
-
-
-
 function renderProcedureItems(container, station, result) {
+  container.innerHTML = "";
 
-    container.innerHTML = "";
+  station.procedureItems.forEach((item, index) => {
+    const savedScore = result.procedureScores[item.id];
 
-    station.procedureItems.forEach((item, index) => {
+    const isCompleted = result.procedureScores[item.id];
 
-        const savedScore = result.procedureScores[item.id];
-
-        const isCompleted = result.procedureScores[item.id];
-
-            const optionsHtml = item.scoreOptions.map(option => {
-
-                return `
+    const optionsHtml = item.scoreOptions
+      .map((option) => {
+        return `
 
                     <label>
 
@@ -172,11 +177,7 @@ function renderProcedureItems(container, station, result) {
                             type="radio"
                             name="${item.id}"
                             value="${option}"
-                            ${
-                                savedScore === option
-                                ? "checked"
-                                : ""
-                            }
+                            ${savedScore === option ? "checked" : ""}
                         >
 
                         ${option}
@@ -184,10 +185,10 @@ function renderProcedureItems(container, station, result) {
                     </label>
 
                 `;
+      })
+      .join("");
 
-            }).join("");
-
-            container.innerHTML += `
+    container.innerHTML += `
 
                 <div class="procedure-item ${isCompleted ? "completed" : ""}">
 
@@ -202,72 +203,63 @@ function renderProcedureItems(container, station, result) {
 
                 </div>
             `;
-        }
-    );
+  });
 
-    setupProcedureEvents(container, result);
-
+  setupProcedureEvents(container, result);
 }
-
-
-
 
 function setupProcedureEvents(container, result) {
+  const radios = container.querySelectorAll(
+    ".procedure-item input[type='radio']",
+  );
 
-    const radios = container.querySelectorAll(".procedure-item input[type='radio']");
+  radios.forEach((radio) => {
+    radio.addEventListener("change", () => {
+      const procedureId = radio.name;
 
-    radios.forEach(radio => {
+      result.procedureScores[procedureId] = Number(radio.value);
 
-        radio.addEventListener("change", () => {
+      const card = radio.closest(".procedure-item");
+      card.classList.add("completed");
 
-            const procedureId = radio.name;
-
-            result.procedureScores[procedureId] = Number(radio.value);
-
-            const card = radio.closest(".procedure-item");
-            card.classList.add("completed");
-        });
+      updateResult();
     });
+  });
 }
 
+function runProcedureTimer(
+  container,
+  timerElement,
+  station,
+  user,
+  result,
+  moderator,
+  type,
+) {
+  if (station.procedureTimer.enabled) {
+    return startProcedureTimer(result, station, timerElement, () => {
+      updateResult();
 
-
-
-
-function runProcedureTimer(container, timerElement, station, user, result, moderator, type) {
-
-    if (station.procedureTimer.enabled) {
-
-       return startProcedureTimer(result, station, timerElement, () => {
-
-            formulateEachProcedureScore(station, result);
-            procedureCompleted(result.id);
-            renderProcedureInfo(container, station, moderator, type);
-
-        });
-    }
+      formulateEachProcedureScore(station, result);
+      procedureCompleted(result.id);
+      renderProcedureInfo(container, station, moderator, type);
+    });
+  }
 }
-
-
-
-
 
 function formulateEachProcedureScore(station, result) {
+  station.procedureItems.forEach((procedureItem) => {
+    const procedureId = procedureItem.id;
+    const selectedScore = result.procedureScores[procedureId];
 
-        station.procedureItems.forEach(procedureItem => {
+    if (selectedScore) {
+      addProcedureScore(result.id, procedureId, selectedScore);
+    }
+  });
 
-        const procedureId = procedureItem.id;
-        const selectedScore = result.procedureScores[procedureId];
-
-        if (selectedScore) {
-
-            addProcedureScore(result.id, procedureId, selectedScore);
-
-        }
-    });
-
-    const finalResult = getResult(result.id)
-    finalResult.calculateTotal(station.procedureItems.length, station.questions.length)
-
-    console.log(finalResult);
+  const finalResult = getResult(result.id);
+  finalResult.calculateTotal(
+    station.procedureItems.length,
+    station.questions.length,
+  );
 }

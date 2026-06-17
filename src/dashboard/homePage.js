@@ -2,8 +2,7 @@ import { renderAdminDashboard } from "./adminDashboard.js";
 import { renderMainMenu } from "./mainMenu.js";
 
 export function renderHomePage(container) {
-
-container.innerHTML = `
+  container.innerHTML = `
 
 <div class="home-page">
 
@@ -53,28 +52,23 @@ container.innerHTML = `
 
 `;
 
-sethomePageRoute(container)
-
+  sethomePageRoute(container);
 }
 
-
 function sethomePageRoute(container) {
+  const body = document.querySelector("body");
 
-  const body = document.querySelector('body');
+  body.addEventListener("click", (e) => {
+    const target = e.target.closest("[data-tab]");
 
-  body.addEventListener('click', (e) => {
+    if (!target) return;
 
-    const target = e.target.closest('[data-tab]');
-
-    if(!target) return;
-    
-    if (target.dataset.tab === 'admin-tab') {
+    if (target.dataset.tab === "admin-tab") {
       renderAdminDashboard(container);
     }
 
-    if (target.dataset.tab === 'menu-tab') {
-      renderMainMenu(container)
-
+    if (target.dataset.tab === "menu-tab") {
+      renderMainMenu(container);
     }
-  })
+  });
 }

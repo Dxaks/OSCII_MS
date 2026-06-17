@@ -3,11 +3,10 @@ import { showNoticeDialog, showConfirmDialog } from "../utilities/utility.js";
 import { createResult, getStudentResults } from "../app/result.js";
 import { renderProcedurePage } from "./examinerDashboard.js";
 import { renderLoginPage } from "./loginPage.js";
-import logo from "../asset/images/umcons-logo.jpg";
+import logo from "../asset/icons/account-circle.svg";
 
 export function renderProcedureInfo(container, station, moderator, type) {
-
-    container.innerHTML = `
+  container.innerHTML = `
 
         <div class="procedure-info">
 
@@ -75,64 +74,57 @@ export function renderProcedureInfo(container, station, moderator, type) {
         </div>
     `;
 
-    setupProcedureInfoEvents(container, station, moderator, type);
+  setupProcedureInfoEvents(container, station, moderator, type);
 
-    const logout = container.querySelector(".logout-btn");
-    logout.addEventListener("click", () => {
+  const logout = container.querySelector(".logout-btn");
+  logout.addEventListener("click", () => {
+    showConfirmDialog({
+      title: "Logout",
+      message: "Are you sure you want to leave the current student assessment?",
 
-        showConfirmDialog({
-            title: "Logout",
-            message: "Are you sure you want to leave the current student assessment?",
-
-            onConfirm() {
-                renderLoginPage(container, station.id, type);
-            }
-        });
-    })
+      onConfirm() {
+        renderLoginPage(container, station.id, type);
+      },
+    });
+  });
 }
 
-
-
-
 function setupProcedureInfoEvents(container, station, moderator, type) {
+  const searchBtn = container.querySelector(".search-student-btn");
 
-    const searchBtn = container.querySelector(".search-student-btn");
+  searchBtn.addEventListener("click", () => {
+    const admissionNo = container
+      .querySelector(".student-search-input")
+      .value.trim();
 
-    searchBtn.addEventListener("click", () => {
+    const student = getStudentByAdmissionNo(admissionNo);
 
-        const admissionNo = container.querySelector(
-            ".student-search-input").value.trim();
+    if (!student) {
+      showNoticeDialog({
+        title: "Student Not Found",
+        message: "No student was found with that admission number.",
+      });
 
-        const student = getStudentByAdmissionNo(admissionNo);
+      return;
+    }
 
-        if(!student){
+    if (!station.procedureItems.length) {
+      showNoticeDialog({
+        title: "Assessment Unavailable",
+        message:
+          "There are currently no checklist item available for this assessment.",
+      });
 
-            showNoticeDialog({
-                title: "Student Not Found",
-                message: "No student was found with that admission number."
-                });
+      return;
+    }
 
-                return;
-            }
-
-            if(!station.procedureItems.length){
-
-            showNoticeDialog({
-                title: "Assessment Unavailable",
-                message: "There are currently no checklist item available for this assessment."
-            });
-
-            return;
-        } 
-        
-    
-        showConfirmDialog({
-            title: "Confirm Student",
-            message: `
+    showConfirmDialog({
+      title: "Confirm Student",
+      message: `
                 <div class="student-preview">
                     <div class="student-image">
                         ${
-                            student.image
+                          student.image
                             ? `<img src="${student.image}">`
                             : `<img src="${logo}">`
                         }
@@ -152,26 +144,29 @@ function setupProcedureInfoEvents(container, station, moderator, type) {
                 </div>
             `,
 
-            onConfirm() {
+      onConfirm() {
+        const existingResult = getStudentResults(student.id, station.id);
+        console.log(existingResult);
 
-                const existingResult = getStudentResults(student.id, station.id);
+        if (existingResult && existingResult.status.procedure === "completed") {
+          showNoticeDialog({
+            title: "Assessment Completed",
+            message:
+              "You have already completed the checklist for this student.",
+          });
 
+          return;
+        }
 
-                if(existingResult && existingResult.status.procedure === "completed") {
-
-                    showNoticeDialog({
-                    title:
-                    "Assessment Completed",
-                    message:
-                    "You have already completed the checklist for this student."
-                    });
-
-                    return;
-
-                }
-        
-                renderProcedurePage(container, station, student, moderator, existingResult, type);
-            }
-        });
+        renderProcedurePage(
+          container,
+          station,
+          student,
+          moderator,
+          existingResult,
+          type,
+        );
+      },
     });
-};
+  });
+}
