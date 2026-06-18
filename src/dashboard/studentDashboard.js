@@ -84,7 +84,7 @@ export function renderQuestionPage(
 
   renderQuestion(container.querySelector(".question-content"), station, result);
 
-  renderNavigations(station, ".question-nav");
+  renderNavigations(station, ".question-nav", result);
 
   const navContainer = container.querySelector(".question-nav");
   navContainer.addEventListener("click", (e) => {
@@ -224,7 +224,7 @@ function renderQuestion(container, station, result) {
   setupQuestionEvents(container, station, result);
 }
 
-function renderNavigations(station, selector) {
+function renderNavigations(station, selector, result) {
   const isQuestionsAvailable = station.questions.length;
 
   if (!isQuestionsAvailable) return;
@@ -232,11 +232,18 @@ function renderNavigations(station, selector) {
   const container = document.querySelector(selector);
 
   station.questions.forEach((question, index) => {
+
     const btn = document.createElement("button");
 
     btn.textContent = index + 1;
 
     btn.dataset.index = index;
+
+    if (result.studentAnswers[question.id]) {
+
+            btn.classList.add("answered");
+
+        }
 
     container.appendChild(btn);
   });

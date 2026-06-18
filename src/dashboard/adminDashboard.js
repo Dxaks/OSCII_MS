@@ -1051,7 +1051,6 @@ function displayResult(station, element) {
         <td>${studentResult.questionPercentage}</td>
       
       </tr>
-      
     `;
     }
   });
