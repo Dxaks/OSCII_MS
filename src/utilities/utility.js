@@ -219,7 +219,7 @@ export function startQuestionTimer(result, station, timerElement, onTimeUp) {
 
     timerElement.textContent = formatTime(timeRemaining);
 
-    if (timeRemaining <= 0) {
+    if (timeRemaining === 0) {
       clearInterval(timerId);
 
       onTimeUp?.();
@@ -261,7 +261,7 @@ export function startProcedureTimer(result, station, timerElement, onTimeUp) {
 
     timerElement.textContent = formatTime(timeRemaining);
 
-    if (timeRemaining <= 0) {
+    if (timeRemaining === 0) {
       clearInterval(timerId);
 
       onTimeUp?.();

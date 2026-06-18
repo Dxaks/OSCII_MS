@@ -69,17 +69,13 @@ class Result {
   }
 }
 
-export function createResult(
-  studentId,
-  stationId,
-  resultId,
-  saveToLocal = true,
-) {
+export function createResult(studentId, stationId, resultId, saveToLocal=true) {
+
   const result = new Result(studentId, stationId, resultId);
 
   ResultManagement.saveResult(result);
 
-  if (saveToLocal) {
+  if(saveToLocal) {
     addResultToLocalStorage();
   }
 

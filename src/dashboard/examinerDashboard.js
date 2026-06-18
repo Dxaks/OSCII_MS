@@ -25,6 +25,11 @@ export function renderProcedurePage(
     result.procedureTimeRemaining = station.procedureTimer.duration * 60;
   }
 
+  if (result.procedureTimeRemaining == null) {
+    result.procedureTimeRemaining =
+    station.procedureTimer.duration * 60;
+}
+
   container.innerHTML = `
 
         <div class="procedure-page">
@@ -148,11 +153,11 @@ export function renderProcedurePage(
       message: "Are you sure you to submit this assessment?",
 
       onConfirm() {
-        updateResult();
-
+        
         formulateEachProcedureScore(station, result);
         procedureCompleted(result.id);
         clearInterval(timer);
+        updateResult();
         renderProcedureInfo(container, station, moderator, type);
       },
     });
@@ -236,13 +241,16 @@ function runProcedureTimer(
   moderator,
   type,
 ) {
+
+
   if (station.procedureTimer.enabled) {
     return startProcedureTimer(result, station, timerElement, () => {
-      updateResult();
-
+    
       formulateEachProcedureScore(station, result);
       procedureCompleted(result.id);
+        updateResult();
       renderProcedureInfo(container, station, moderator, type);
+
     });
   }
 }

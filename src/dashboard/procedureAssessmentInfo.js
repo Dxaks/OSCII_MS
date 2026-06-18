@@ -146,7 +146,6 @@ function setupProcedureInfoEvents(container, station, moderator, type) {
 
       onConfirm() {
         const existingResult = getStudentResults(student.id, station.id);
-        console.log(existingResult);
 
         if (existingResult && existingResult.status.procedure === "completed") {
           showNoticeDialog({

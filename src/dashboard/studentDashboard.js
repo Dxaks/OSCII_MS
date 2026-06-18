@@ -26,6 +26,11 @@ export function renderQuestionPage(
     result.timeRemaining = station.questionTimer.duration * 60;
   }
 
+    if (result.timeRemaining == null) {
+    result.timeRemaining =
+    station.questionTimer.duration * 60;
+}
+
   const timerUpdater = updateResultAtRegularInterval();
 
   container.innerHTML = `
@@ -141,7 +146,6 @@ export function renderQuestionPage(
 
       onConfirm() {
         updateResult();
-
         clearInterval(timer);
         clearInterval(timerUpdater);
 
@@ -164,6 +168,7 @@ export function renderQuestionPage(
 
       onConfirm() {
         formulateEachQuestionScore(container, user, station, result);
+        console.log(result)
         questionCompleted(result.id);
         clearInterval(timer);
         clearInterval(timerUpdater);

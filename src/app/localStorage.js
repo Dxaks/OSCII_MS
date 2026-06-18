@@ -66,6 +66,7 @@ export function retrieveUsers() {
 // add results to localStoage
 export function addResultToLocalStorage() {
   const results = getAllResults();
+
   localStorage.setItem("allResults", JSON.stringify(results));
 
   return true;

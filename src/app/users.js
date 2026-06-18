@@ -9,7 +9,6 @@ class UserManagement {
 
   static login(username, password) {
     const user = this.allUsers.find((user) => user.username === username);
-    console.log(user);
 
     if (!user) return null;
 
