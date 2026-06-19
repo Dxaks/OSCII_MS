@@ -378,6 +378,28 @@ body {
   overflow-y: auto;
 }
 
+.station-box ul li{
+  position: relative;
+}
+
+.station-box ul li .edit-question,
+.station-box ul li .edit-procedure{
+  position: absolute;
+  display: none;
+  top: 50%;
+  left: 50%;
+  transform:  translate(-50%, -50%);
+  background-color: #3ea1fd;
+  color: whitesmoke;
+  border-radius: 30px;
+  padding: 10px;
+}
+
+.station-box ul li:hover .edit-question,
+.station-box ul li:hover .edit-procedure  {
+  display: block;
+}
+
 .station-box button {
   border: none;
   background: #2563eb;

@@ -3,6 +3,7 @@ import {
   importQuestions,
   importUsers,
 } from "../app/csvImporter.js";
+import { saveStationToLocalStorage } from "../app/localStorage.js";
 import { getAllResults, getStationResults } from "../app/result.js";
 import {
   createStation,
@@ -339,8 +340,9 @@ function renderStationPage(container, stationId) {
       ${station.procedureItems
         .map(
           (item, index) => `
-            <li>
+            <li class="procedure-item-row" data-id="${item.id}" >
               ${index + 1}. ${item.description}
+              <span class="edit-procedure"> click to edit </span>
             </li>
           `,
         )
@@ -407,6 +409,39 @@ function renderStationPage(container, stationId) {
     setProcedureTimerDuration(station.id, seconds);
   });
 
+  // edit procedure
+  const procedureList =
+  procedureBox.querySelector(".procedure-list");
+
+procedureList.addEventListener(
+  "click",
+  (e) => {
+
+    const row =
+      e.target.closest(
+        ".procedure-item-row"
+      );
+
+    if (!row) return;
+
+    const procedureId =
+      row.dataset.id;
+
+    const procedure =
+      station.procedureItems.find(
+        item => item.id === procedureId
+      );
+
+    showProcedureModal(
+      station.id,
+      container,
+      procedure
+    );
+  }
+);
+
+
+
   // question box
   const questionBox = document.createElement("div");
 
@@ -421,8 +456,9 @@ function renderStationPage(container, stationId) {
       ${station.questions
         .map(
           (question, index) => `
-            <li>
-                ${index + 1}. ${question.description}
+            <li class="question-item-row" data-id="${question.id}">
+              ${index + 1}. ${question.description}
+              <span class="edit-question"> click to edit </span>
             </li>
           `,
         )
@@ -492,6 +528,39 @@ function renderStationPage(container, stationId) {
 
     setQuestionTimerDuration(station.id, seconds);
   });
+
+
+  // edit question
+  const questionList =
+  questionBox.querySelector(".question-list");
+
+questionList.addEventListener(
+  "click",
+  (e) => {
+
+    const row =
+      e.target.closest(
+        ".question-item-row"
+      );
+
+    if (!row) return;
+
+    const questionId =
+      row.dataset.id;
+
+    const question =
+      station.questions.find(
+        q => q.id === questionId
+      );
+
+    showQuestionModal(
+      station.id,
+      container,
+      question,
+    );
+  }
+);
+
 
   const grid = document.createElement("div");
   grid.className = "station-grid";
@@ -616,8 +685,10 @@ function renderStationPage(container, stationId) {
   });
 }
 
-function showProcedureModal(stationId, container) {
+function showProcedureModal(stationId, container, procedure=null) {
+
   const overlay = document.createElement("div");
+  const isEditMode = procedure !== null;
 
   overlay.className = "modal-overlay";
 
@@ -625,22 +696,21 @@ function showProcedureModal(stationId, container) {
     <div class="modal">
 
       <div class="title">
-        <h2>Add Procedure Item</h2>
+        <h2>${isEditMode ? "Edit Procedure Item" : "Add Procedure Item"} </h2>
         <button class="close-modal-btn" type="button">×</button>
       </div>
     
       <form id="procedure-form">
 
-        <input
-          type="text"
-          name="description"
-          placeholder="Procedure description"
-          required
-        >
+        <textarea name="description"
+        placeholder="Procedure description" required >
+        ${procedure?.description || ""}
+        </textarea>
 
         <input
           type="text"
           name="scoreOptions"
+          value="${procedure?.scoreOptions || ""}"
           placeholder="Mark"
           required
         >
@@ -668,53 +738,60 @@ function showProcedureModal(stationId, container) {
   });
 
   form.addEventListener("submit", (e) => {
-    handleProcedureSubmit(e, stationId, container);
+    handleProcedureSubmit(e, stationId, container, procedure);
   });
 }
 
-function handleProcedureSubmit(e, stationId, container) {
+function handleProcedureSubmit(e, stationId, container, procedure) {
   e.preventDefault();
 
+  const isEditMode = procedure !== null;
+
   const formData = new FormData(e.target);
-
   const description = formData.get("description");
-
   const scoreOptions = formData.get("scoreOptions").split(",").map(Number);
 
-  const station = getStationById(stationId);
-
-  addProcedureToStation(station.name, description, scoreOptions);
-
+    if(isEditMode) {
+      procedure.description = description
+      procedure.scoreOptions = scoreOptions;
+    }
+    else {
+      const station = getStationById(stationId);
+      addProcedureToStation(station.name, description, scoreOptions);
+    }
+  
+  saveStationToLocalStorage();
   document.querySelector(".modal-overlay").remove();
-
   renderStationPage(container, stationId);
+
 }
 
-function showQuestionModal(stationId, container) {
+function showQuestionModal(stationId, container, question = null) {
   const overlay = document.createElement("div");
 
   overlay.className = "modal-overlay";
+
+  const isEditMode = question !== null;
 
   overlay.innerHTML = `
     <div class="modal">
 
       <div class="title">
-        <h2>Add Question</h2>
+        <h2> ${isEditMode ? "Edit Question" : "Add Question"} </h2>
         <button class="close-modal-btn" type="button">×</button>
       </div>
 
       <form id="question-form">
 
-        <textarea
-          name="description"
-          placeholder="Question"
-          required
-        ></textarea>
+        <textarea name="description"
+        placeholder="Question" required >${question?.description || ""}
+        </textarea>
 
         <input
           type="text"
           name="option1"
           placeholder="Option 1"
+          value="${question?.options[0] || ""}"
           required
         >
 
@@ -722,6 +799,7 @@ function showQuestionModal(stationId, container) {
           type="text"
           name="option2"
           placeholder="Option 2"
+          value="${question?.options[1] || ""}"
           required
         >
 
@@ -729,6 +807,7 @@ function showQuestionModal(stationId, container) {
           type="text"
           name="option3"
           placeholder="Option 3"
+          value="${question?.options[2] || ""}"
           required
         >
 
@@ -736,6 +815,7 @@ function showQuestionModal(stationId, container) {
           type="text"
           name="option4"
           placeholder="Option 4"
+          value="${question?.options[3] || ""}"
           required
         >
 
@@ -743,6 +823,7 @@ function showQuestionModal(stationId, container) {
           type="text"
           name="answer"
           placeholder="Correct Answer"
+          value="${question?.answer || ""}"
           required
         >
 
@@ -750,12 +831,13 @@ function showQuestionModal(stationId, container) {
           type="number"
           name="mark"
           placeholder="Mark"
+          value="${question?.mark || ""}"
           required
         >
 
-        <button type="submit">
-          Save Question
-        </button>
+      <button type="submit">
+        ${isEditMode ? "Update Question" : "Save Question"}
+      </button>
 
       </form>
 
@@ -776,18 +858,16 @@ function showQuestionModal(stationId, container) {
   const form = overlay.querySelector("#question-form");
 
   form.addEventListener("submit", (e) => {
-    handleQuestionSubmit(e, stationId, container);
+    handleQuestionSubmit(e, stationId, container, question);
   });
 }
 
-function handleQuestionSubmit(e, stationId, container) {
+function handleQuestionSubmit(e, stationId, container, question) {
   e.preventDefault();
 
-  const formData = new FormData(e.target);
-
-  const description = formData.get("description");
-
-  const options = [
+    const formData = new FormData(e.target);
+    const description = formData.get("description");
+    const options = [
     formData.get("option1"),
     formData.get("option2"),
     formData.get("option3"),
@@ -795,17 +875,33 @@ function handleQuestionSubmit(e, stationId, container) {
   ];
 
   const answer = formData.get("answer");
-
   const mark = Number(formData.get("mark"));
 
-  const station = getStationById(stationId);
 
-  addQuestionToStation(station.name, description, options, answer, mark);
+  const isEditMode = question !== null;
 
-  document.querySelector(".modal-overlay").remove();
+  if (isEditMode) {
 
-  renderStationPage(container, stationId);
+      question.description = description;
+
+      question.options = options;
+
+      question.answer = answer;
+
+      question.mark = mark;
+
 }
+  else {
+
+    const station = getStationById(stationId);
+    addQuestionToStation(station.name, description, options, answer, mark);
+  }
+
+    saveStationToLocalStorage()
+    document.querySelector(".modal-overlay").remove();
+    renderStationPage(container, stationId);
+}
+
 
 function handleAddUser(e) {
   e.preventDefault();
