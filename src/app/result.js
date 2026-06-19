@@ -3,6 +3,7 @@ import { addResultToLocalStorage } from "./localStorage.js";
 class ResultManagement {
   static allResults = {};
 
+  // Keep result records in memory; localStorage mirrors this store for now.
   static saveResult(result) {
     this.allResults[result.id] = result;
     return true;
@@ -46,6 +47,7 @@ class Result {
     this.procedureScores = {};
   }
 
+  // Recalculate totals and percentages from the recorded scores.
   calculateTotal(totalProcedureMarks, totalQuestionMarks) {
     this.procedureTotal = this.procedureResults.reduce(
       (sum, item) => sum + item.score,
@@ -69,13 +71,13 @@ class Result {
   }
 }
 
-export function createResult(studentId, stationId, resultId, saveToLocal=true) {
-
+export function createResult(studentId, stationId, resultId, saveToLocal = true) {
   const result = new Result(studentId, stationId, resultId);
 
   ResultManagement.saveResult(result);
 
-  if(saveToLocal) {
+  // Hydration paths pass saveToLocal = false so restored records do not loop back.
+  if (saveToLocal) {
     addResultToLocalStorage();
   }
 

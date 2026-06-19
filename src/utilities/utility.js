@@ -212,6 +212,7 @@ export function startQuestionTimer(result, station, timerElement, onTimeUp) {
 
   timerElement.textContent = formatTime(timeRemaining);
 
+  // The timer state lives on the result so it can survive rerenders and refreshes.
   const timerId = setInterval(() => {
     timeRemaining--;
 
@@ -254,6 +255,7 @@ export function startProcedureTimer(result, station, timerElement, onTimeUp) {
 
   timerElement.textContent = formatTime(timeRemaining);
 
+  // Procedure timing uses the same persistence strategy as the question flow.
   const timerId = setInterval(() => {
     timeRemaining--;
 
@@ -276,6 +278,7 @@ export function updateResult() {
 }
 
 export function updateResultAtRegularInterval() {
+  // Periodic snapshots reduce the chance of losing in-progress answers on refresh.
   const timerId = setInterval(() => {
     updateResult();
   }, 10000);

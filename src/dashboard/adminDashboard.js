@@ -161,6 +161,7 @@ function renderViewStations(container) {
 // html modal
 
 function openModal(title, formHtml) {
+  // Reuse one modal shell for station, user, and assessment item forms.
   const modal = document.createElement("div");
   modal.className = "modal-overlay";
 
@@ -622,6 +623,8 @@ questionList.addEventListener(
 
           </table>
 
+          <button class="download-result-btn">Download Result</button>
+
       </div>
 
   </div>
@@ -751,19 +754,17 @@ function handleProcedureSubmit(e, stationId, container, procedure) {
   const description = formData.get("description");
   const scoreOptions = formData.get("scoreOptions").split(",").map(Number);
 
-    if(isEditMode) {
-      procedure.description = description
+    if (isEditMode) {
+      procedure.description = description;
       procedure.scoreOptions = scoreOptions;
-    }
-    else {
+    } else {
       const station = getStationById(stationId);
       addProcedureToStation(station.name, description, scoreOptions);
     }
-  
+
   saveStationToLocalStorage();
   document.querySelector(".modal-overlay").remove();
   renderStationPage(container, stationId);
-
 }
 
 function showQuestionModal(stationId, container, question = null) {
@@ -881,7 +882,6 @@ function handleQuestionSubmit(e, stationId, container, question) {
   const isEditMode = question !== null;
 
   if (isEditMode) {
-
       question.description = description;
 
       question.options = options;
@@ -889,17 +889,15 @@ function handleQuestionSubmit(e, stationId, container, question) {
       question.answer = answer;
 
       question.mark = mark;
-
-}
-  else {
+  } else {
 
     const station = getStationById(stationId);
     addQuestionToStation(station.name, description, options, answer, mark);
   }
 
-    saveStationToLocalStorage()
-    document.querySelector(".modal-overlay").remove();
-    renderStationPage(container, stationId);
+  saveStationToLocalStorage();
+  document.querySelector(".modal-overlay").remove();
+  renderStationPage(container, stationId);
 }
 
 
@@ -1129,6 +1127,7 @@ function renderUsers(container) {
 }
 
 function displayResult(station, element) {
+  // Render the station-wide results table from the persisted result store.
   const result = getStationResults(station.id);
 
   result.forEach((studentResult) => {
@@ -1141,10 +1140,10 @@ function displayResult(station, element) {
         <td>${student.firstname} </td>
         <td>${student.surname} </td>
         <td>${student.admissionNo} </td>
-        <td>${studentResult.procedureTotal}</td>
-        <td>${studentResult.procedurePercentage}</td>
-        <td>${studentResult.questionTotal}</td>
-        <td>${studentResult.questionPercentage}</td>
+        <td>${studentResult.procedureTotal.toFixed(2)}</td>
+        <td>${studentResult.procedurePercentage.toFixed(2)}</td>
+        <td>${studentResult.questionTotal.toFixed(2)}</td>
+        <td>${studentResult.questionPercentage.toFixed(2)}</td>
       
       </tr>
     `;

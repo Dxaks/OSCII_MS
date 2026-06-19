@@ -3,6 +3,7 @@ import { addUserToLocalStorage } from "./localStorage.js";
 class UserManagement {
   static allUsers = [];
 
+  // Keep users in memory until a backend replaces this store.
   static addUser(user) {
     this.allUsers.push(user);
   }
@@ -47,10 +48,12 @@ class User {
     this.#password = password;
   }
 
+  // Passwords are compared locally today; the backend should replace this flow.
   checkPassword(input) {
     return this.#password === input;
   }
 
+  // Expose a serializable shape for localStorage persistence.
   toJSON() {
     return {
       id: this.id,

@@ -2,13 +2,13 @@ import { createResult, getAllResults } from "./result.js";
 import { createStation, getAllStations } from "./stationManager.js";
 import { createUser, getAllUsers } from "./users.js";
 
-// save station to localStorage
+// Serialize the current station store so the browser can restore it on reload.
 export function saveStationToLocalStorage() {
   const stations = getAllStations();
   localStorage.setItem("allStations", JSON.stringify(stations));
 }
 
-// this func. retrieve all station from local storage when dom is loaded
+// Rebuild station instances from the JSON snapshot stored in localStorage.
 export function retrieveStationsFromLocalStorage() {
   const storage = localStorage.getItem("allStations");
 
@@ -31,7 +31,7 @@ export function retrieveStationsFromLocalStorage() {
   return false;
 }
 
-// add users to localStorage
+// Persist the current user store to localStorage.
 export function addUserToLocalStorage() {
   const allUsers = getAllUsers();
 
@@ -40,7 +40,7 @@ export function addUserToLocalStorage() {
   }
 }
 
-// retrieve users to local storage
+// Recreate users from localStorage so login continues to work after refresh.
 export function retrieveUsers() {
   const allUsers = localStorage.getItem("allUsers");
 
@@ -63,7 +63,7 @@ export function retrieveUsers() {
   }
 }
 
-// add results to localStoage
+// Persist assessment results so in-progress work is not lost on refresh.
 export function addResultToLocalStorage() {
   const results = getAllResults();
 
@@ -72,8 +72,7 @@ export function addResultToLocalStorage() {
   return true;
 }
 
-// retrieve result from localStorage
-
+// Recreate result objects from localStorage and restore their progress state.
 export function retrieveResults() {
   const results = localStorage.getItem("allResults");
 

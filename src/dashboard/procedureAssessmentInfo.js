@@ -118,6 +118,7 @@ function setupProcedureInfoEvents(container, station, moderator, type) {
       return;
     }
 
+    // Confirm the student before opening the live procedure scoring screen.
     showConfirmDialog({
       title: "Confirm Student",
       message: `
@@ -147,6 +148,7 @@ function setupProcedureInfoEvents(container, station, moderator, type) {
       onConfirm() {
         const existingResult = getStudentResults(student.id, station.id);
 
+        // Prevent repeat submissions for a completed procedure attempt.
         if (existingResult && existingResult.status.procedure === "completed") {
           showNoticeDialog({
             title: "Assessment Completed",

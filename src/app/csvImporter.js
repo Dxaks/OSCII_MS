@@ -12,6 +12,7 @@ export function importUsers(csvData, onComplete) {
     skipFirstNLines: 1,
     skipEmptyLines: true,
     complete: function (result) {
+      // Expect 6 columns: surname, firstname, admissionNo, username, password, role.
       result.data.forEach((data) => {
         if (data.length !== 6) {
           notyf.error("Incomplete data, check the csv");
@@ -47,6 +48,7 @@ export function importQuestions(csvData, whichStation, onComplete) {
     skipFirstNLines: 1,
     skipEmptyLines: true,
     complete: function (result) {
+      // Expect 7 columns: description, option1-4, answer, mark.
       result.data.forEach((data) => {
         if (data.length !== 7) {
           notyf.error("Incomplete data, check the csv");
@@ -80,6 +82,7 @@ export function importProcedureItems(csvData, whichStation, onComplete) {
     skipFirstNLines: 1,
     skipEmptyLines: true,
     complete: function (result) {
+      // Expect 2 columns: description and mark.
       result.data.forEach((data) => {
         if (data.length !== 2) {
           notyf.error("Incomplete data, check the csv");

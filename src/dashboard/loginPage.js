@@ -115,6 +115,7 @@ function setupLoginEvents(container, stationId, type) {
       return;
     }
 
+    // Enforce the current UI role rules before routing into an assessment flow.
     if (user.role === "moderator" && type === "question") {
       showNoticeDialog({
         title: "Access Denied !!!",
@@ -136,6 +137,7 @@ function setupLoginEvents(container, stationId, type) {
       renderAssessmentInfo(container, user, station, type, existingResult);
     }
 
+    // Moderators jump directly into the examiner workflow for procedure scoring.
     if (user.role === "moderator") {
       renderProcedureInfo(container, station, user, type);
     }

@@ -21,14 +21,14 @@ export function renderProcedurePage(
   if (existingResult) {
     result = existingResult;
   } else {
+    // Create a fresh procedure attempt when there is no saved result yet.
     result = createResult(student.id, station.id);
     result.procedureTimeRemaining = station.procedureTimer.duration * 60;
   }
 
   if (result.procedureTimeRemaining == null) {
-    result.procedureTimeRemaining =
-    station.procedureTimer.duration * 60;
-}
+    result.procedureTimeRemaining = station.procedureTimer.duration * 60;
+  }
 
   container.innerHTML = `
 
@@ -153,7 +153,7 @@ export function renderProcedurePage(
       message: "Are you sure you to submit this assessment?",
 
       onConfirm() {
-        
+        // Convert the temporary rubric selections into scored result rows.
         formulateEachProcedureScore(station, result);
         procedureCompleted(result.id);
         clearInterval(timer);
@@ -241,21 +241,19 @@ function runProcedureTimer(
   moderator,
   type,
 ) {
-
-
   if (station.procedureTimer.enabled) {
     return startProcedureTimer(result, station, timerElement, () => {
-    
+      // Auto-submit when the timer expires so the result is finalized in one place.
       formulateEachProcedureScore(station, result);
       procedureCompleted(result.id);
-        updateResult();
+      updateResult();
       renderProcedureInfo(container, station, moderator, type);
-
     });
   }
 }
 
 function formulateEachProcedureScore(station, result) {
+  // Move selected rubric scores from the temporary map into the persisted arrays.
   station.procedureItems.forEach((procedureItem) => {
     const procedureId = procedureItem.id;
     const selectedScore = result.procedureScores[procedureId];

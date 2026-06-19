@@ -710,6 +710,19 @@ body {
   transition: 0.3s;
 }
 
+.download-result-btn {
+  display: block;
+  color: white;
+  background-color: #2563eb;
+  padding: 15px 30px;
+  margin: 30px auto;
+  border: none;
+  border-radius: 30px;
+  font-weight: 800;
+  transition: 0.2s;
+  cursor: pointer;
+}
+
 /* main menu page */
 
 .main-menu-buttons {
@@ -1546,7 +1559,8 @@ dialog::backdrop {
   width: auto;
 }
 
-.uploader button {
+.uploader button,
+.download-result-btn {
   color: white;
   background-color: #2563eb;
   padding: 10px 20px;

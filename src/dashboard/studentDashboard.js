@@ -22,14 +22,14 @@ export function renderQuestionPage(
   if (existingResult) {
     result = existingResult;
   } else {
+    // Create a fresh attempt when the student has not started this station before.
     result = createResult(user.id, station.id);
     result.timeRemaining = station.questionTimer.duration * 60;
   }
 
-    if (result.timeRemaining == null) {
-    result.timeRemaining =
-    station.questionTimer.duration * 60;
-}
+  if (result.timeRemaining == null) {
+    result.timeRemaining = station.questionTimer.duration * 60;
+  }
 
   const timerUpdater = updateResultAtRegularInterval();
 
@@ -128,7 +128,7 @@ export function renderQuestionPage(
     }
   });
 
-  // timer logic
+  // Timer completion triggers scoring and marks the attempt as finished.
   const timer = runQuestionTimer(
     container,
     container.querySelector(".question-timer"),
@@ -167,8 +167,8 @@ export function renderQuestionPage(
       unansweredQuestions,
 
       onConfirm() {
+        // Convert stored answers into scored question results before finalizing.
         formulateEachQuestionScore(container, user, station, result);
-        console.log(result)
         questionCompleted(result.id);
         clearInterval(timer);
         clearInterval(timerUpdater);
@@ -232,7 +232,6 @@ function renderNavigations(station, selector, result) {
   const container = document.querySelector(selector);
 
   station.questions.forEach((question, index) => {
-
     const btn = document.createElement("button");
 
     btn.textContent = index + 1;
@@ -240,10 +239,8 @@ function renderNavigations(station, selector, result) {
     btn.dataset.index = index;
 
     if (result.studentAnswers[question.id]) {
-
-            btn.classList.add("answered");
-
-        }
+      btn.classList.add("answered");
+    }
 
     container.appendChild(btn);
   });
@@ -368,6 +365,7 @@ function renderResultPage(container, user, station, result) {
 
 function runQuestionTimer(container, timerElement, station, user, result) {
   if (station.questionTimer.enabled) {
+    // When the timer expires, the attempt is scored and the UI moves to results.
     return startQuestionTimer(result, station, timerElement, () => {
       formulateEachQuestionScore(container, user, station, result);
       questionCompleted(result.id);

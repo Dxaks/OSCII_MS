@@ -5,6 +5,7 @@ import { getAllResults } from "./result.js";
 class StationManagement {
   static allStations = {};
 
+  // Stations are keyed by a normalized name so the UI can look them up fast.
   static saveStation(station) {
     const stationKey = formatStr(station.name);
 
@@ -204,10 +205,10 @@ export function deleteStation(stationId) {
   const stationProp = formatStr(station.name);
   const allStations = getAllStations();
 
-  // delete the target station
+  // Remove the station from the in-memory store.
   delete allStations[stationProp];
 
-  // now check if there are any results in this station and delete it
+  // Cascade delete related results because they no longer belong to a valid station.
   const results = getAllResults();
 
   for (const key in results) {

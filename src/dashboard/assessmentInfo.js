@@ -138,6 +138,7 @@ export function renderAssessmentInfo(
     }
 
     if (existingResult) {
+      // Resume only if the student already has an unfinished question attempt.
       if (existingResult.status.question === "completed") {
         showNoticeDialog({
           title: "Assessment Completed",
