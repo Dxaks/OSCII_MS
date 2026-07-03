@@ -1,0 +1,13 @@
+{
+  "name": "oscii-ms-backend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "node --env-file-if-exists=.env --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.22.1",
+    "pg": "^8.22.0"
+  }
+}
