@@ -1,10 +1,16 @@
 import Papa, { parse } from "papaparse";
-import { notyf } from "../utilities/utility.js";
+import { notyf, withLoadingOverlay } from "../utilities/utility.js";
 import { createUser } from "./users.js";
+import { addUserToLocalStorage } from "./localStorage.js";
 import {
   addProcedureToStation,
   addQuestionToStation,
 } from "./stationManager.js";
+import {
+  createUserRemote,
+  createQuestionRemote,
+  createProcedureItemRemote,
+} from "./backendApi.js";
 
 export function importUsers(csvData, onComplete) {
   Papa.parse(csvData, {
@@ -13,28 +19,47 @@ export function importUsers(csvData, onComplete) {
     skipEmptyLines: true,
     complete: function (result) {
       // Expect 6 columns: surname, firstname, admissionNo, username, password, role.
-      result.data.forEach((data) => {
-        if (data.length !== 6) {
-          notyf.error("Incomplete data, check the csv");
-          return;
+      withLoadingOverlay("Importing users", async () => {
+        for (const data of result.data) {
+          if (data.length !== 6) {
+            notyf.error("Incomplete data, check the csv");
+            continue;
+          }
+
+          try {
+            const payload = {
+              surname: data[0],
+              firstname: data[1],
+              admissionNo: data[2],
+              username: data[3],
+              password: data[4],
+              role: data[5],
+              image: "",
+            };
+
+            const response = await createUserRemote(payload);
+
+            createUser(
+              response.user.surname,
+              response.user.firstname,
+              response.user.admissionNo,
+              response.user.username,
+              null,
+              response.user.role,
+              response.user.id,
+              response.user.image,
+              false,
+            );
+          } catch (error) {
+            notyf.error(error.message || "Failed to upload a user");
+          }
         }
 
-        createUser(
-          data[0],
-          data[1],
-          data[2],
-          data[3],
-          data[4],
-          data[5],
-          null,
-          null,
-        );
+        onComplete();
+        notyf.success("user uploaded successfully");
+      }).catch((error) => {
+        notyf.error(error.message || "Failed to upload users");
       });
-
-      // this will serve as a callback to re-render the users table
-      onComplete();
-
-      notyf.success("user uploaded successfully");
     },
     error: function (error, result) {
       notyf.error(error.message);
@@ -42,32 +67,44 @@ export function importUsers(csvData, onComplete) {
   });
 }
 
-export function importQuestions(csvData, whichStation, onComplete) {
+export function importQuestions(csvData, stationId, onComplete) {
   Papa.parse(csvData, {
     header: false,
     skipFirstNLines: 1,
     skipEmptyLines: true,
     complete: function (result) {
       // Expect 7 columns: description, option1-4, answer, mark.
-      result.data.forEach((data) => {
-        if (data.length !== 7) {
-          notyf.error("Incomplete data, check the csv");
+      withLoadingOverlay("Importing questions", async () => {
+        for (const data of result.data) {
+          if (data.length !== 7) {
+            notyf.error("Incomplete data, check the csv");
+            continue;
+          }
 
-          return;
+          const description = data[0];
+          const options = [data[1], data[2], data[3], data[4]];
+          const answer = data[5];
+          const mark = Number(data[6]);
+
+          try {
+            await createQuestionRemote(stationId, {
+              description,
+              options,
+              answer,
+              mark,
+            });
+
+            addQuestionToStation(stationId, description, options, answer, mark);
+          } catch (error) {
+            notyf.error(error.message || "Failed to upload a question");
+          }
         }
 
-        const description = data[0];
-        const options = [data[1], data[2], data[3], data[4]];
-        const answer = data[5];
-        const mark = Number(data[6]);
-
-        addQuestionToStation(whichStation, description, options, answer, mark);
+        onComplete();
+        notyf.success(`${result.data.length} question(s) uploaded successfully`);
+      }).catch((error) => {
+        notyf.error(error.message || "Failed to upload questions");
       });
-
-      // this will serve as a callback to re-render the questions
-      onComplete();
-
-      notyf.success(`${result.data.length} question(s) uploaded successfully`);
     },
 
     error: function (error, result) {
@@ -76,36 +113,42 @@ export function importQuestions(csvData, whichStation, onComplete) {
   });
 }
 
-export function importProcedureItems(csvData, whichStation, onComplete) {
+export function importProcedureItems(csvData, stationId, onComplete) {
   Papa.parse(csvData, {
     header: false,
     skipFirstNLines: 1,
     skipEmptyLines: true,
     complete: function (result) {
       // Expect 2 columns: description and mark.
-      result.data.forEach((data) => {
-        if (data.length !== 2) {
-          notyf.error("Incomplete data, check the csv");
+      withLoadingOverlay("Importing procedure items", async () => {
+        for (const data of result.data) {
+          if (data.length !== 2) {
+            notyf.error("Incomplete data, check the csv");
+            continue;
+          }
 
-          return;
+          const description = data[0];
+          const scoreOptions = [0, Number(data[1])];
+
+          try {
+            await createProcedureItemRemote(stationId, {
+              description,
+              scoreOptions,
+            });
+
+            addProcedureToStation(stationId, description, scoreOptions);
+          } catch (error) {
+            notyf.error(error.message || "Failed to upload a procedure item");
+          }
         }
 
-        const description = data[0];
-        const scoreOptions = [0, Number(data[1])];
-
-        const proc = addProcedureToStation(
-          whichStation,
-          description,
-          scoreOptions,
+        onComplete();
+        notyf.success(
+          `${result.data.length} procedure items uploaded successfully`,
         );
+      }).catch((error) => {
+        notyf.error(error.message || "Failed to upload procedure items");
       });
-
-      // this will serve as a callback to re-render the procedure items
-      onComplete();
-
-      notyf.success(
-        `${result.data.length} procedure items uploaded successfully`,
-      );
     },
 
     error: function (error, result) {

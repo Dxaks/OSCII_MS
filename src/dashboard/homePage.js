@@ -1,5 +1,5 @@
-import { renderAdminDashboard } from "./adminDashboard.js";
 import { renderMainMenu } from "./mainMenu.js";
+import { renderLoginPage } from "./loginPage.js";
 
 export function renderHomePage(container) {
   container.innerHTML = `
@@ -64,7 +64,7 @@ function sethomePageRoute(container) {
     if (!target) return;
 
     if (target.dataset.tab === "admin-tab") {
-      renderAdminDashboard(container);
+      renderLoginPage(container, null, "admin");
     }
 
     if (target.dataset.tab === "menu-tab") {

@@ -1,4 +1,12 @@
 import { addUserToLocalStorage } from "./localStorage.js";
+import { notyf } from "../utilities/utility.js";
+import { makeId } from "../utilities/id.js";
+import { removeResultsByStudent } from "./result.js";
+import {
+  loginWithBackend,
+  updateUserRemote,
+  deleteUserRemote,
+} from "./backendApi.js";
 
 class UserManagement {
   static allUsers = [];
@@ -23,6 +31,10 @@ class UserManagement {
   static getUsers() {
     return this.allUsers;
   }
+
+  static reset() {
+    this.allUsers = [];
+  }
 }
 
 class User {
@@ -38,18 +50,21 @@ class User {
     id,
     image,
   ) {
-    this.id = id || crypto.randomUUID();
+    this.id = id || makeId();
     this.surname = surname;
     this.firstname = firstname;
     this.username = username;
     this.role = role;
     this.admissionNo = admissionNo;
     this.image = image || "";
-    this.#password = password;
+    this.#password = password ?? null;
   }
 
   // Passwords are compared locally today; the backend should replace this flow.
   checkPassword(input) {
+    if (this.#password === null) {
+      return false;
+    }
     return this.#password === input;
   }
 
@@ -65,6 +80,10 @@ class User {
       image: this.image,
       password: this.#password,
     };
+  }
+
+  setPassword(password) {
+    this.#password = password;
   }
 }
 
@@ -92,10 +111,6 @@ export function createUser(
 
   UserManagement.addUser(user);
 
-  if (saveToLocal) {
-    addUserToLocalStorage();
-  }
-
   return user;
 }
 
@@ -118,11 +133,44 @@ export function getAllUsers() {
 }
 
 export function validateUser(username, password) {
-  return UserManagement.login(username, password);
+  return loginWithBackend(username, password)
+    .then(({ user, token }) => ({ ...user, token }))
+    .catch(() => null);
 }
 
-export function deleteUser(userId) {
+export async function updateUser(userId, payload) {
+  const user = getUserById(userId);
+
+  if (!user) {
+    return false;
+  }
+
+  if (payload.surname !== undefined) user.surname = payload.surname;
+  if (payload.firstname !== undefined) user.firstname = payload.firstname;
+  if (payload.username !== undefined) user.username = payload.username;
+  if (payload.role !== undefined) user.role = payload.role;
+  if (payload.admissionNo !== undefined) user.admissionNo = payload.admissionNo;
+  if (payload.image !== undefined) user.image = payload.image;
+  if (payload.password !== undefined && payload.password !== "") {
+    user.setPassword(payload.password);
+  }
+
+ 
+  try {
+    await updateUserRemote(userId, payload);
+  } catch (error) {
+    notyf.error(error.message || "Failed to update user");
+  }
+
+  return true;
+}
+
+export async function deleteUser(userId) {
   const getUser = getUserById(userId);
+
+  if (!getUser) {
+    return false;
+  }
 
   const targetUser = getAllUsers().findIndex((user) => {
     return user.id === getUser.id;
@@ -130,7 +178,17 @@ export function deleteUser(userId) {
 
   if (targetUser !== -1) {
     getAllUsers().splice(targetUser, 1);
-    addUserToLocalStorage();
+    removeResultsByStudent(userId);
+   
+    try {
+      await deleteUserRemote(userId);
+    } catch (error) {
+      notyf.error(error.message || "Failed to delete user");
+    }
     return true;
   }
+}
+
+export function resetUsers() {
+  UserManagement.reset();
 }

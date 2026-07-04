@@ -1,19 +1,24 @@
 import {
   retrieveResults,
-  retrieveStationsFromLocalStorage,
+  retrieveStations,
   retrieveUsers,
 } from "./app/localStorage.js";
 import { renderHomePage } from "./dashboard/homePage.js";
+import { hideLoadingOverlay, showLoadingOverlay } from "./utilities/utility.js";
 import "./style/default.css";
 
 const content = document.querySelector("#content");
 
-document.addEventListener("DOMContentLoaded", () => {
-  //if localStorage has data, retrieve it.
-  retrieveStationsFromLocalStorage();
-  retrieveUsers();
-  retrieveResults();
+document.addEventListener("DOMContentLoaded", async () => {
+  showLoadingOverlay();
 
-  // load home page after that
-  renderHomePage(content);
+  try {
+    await retrieveStations();
+    await retrieveUsers();
+    await retrieveResults();
+
+    renderHomePage(content);
+  } finally {
+    hideLoadingOverlay();
+  }
 });

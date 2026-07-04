@@ -1,4 +1,6 @@
 import { addResultToLocalStorage } from "./localStorage.js";
+import { createResultRemote } from "./backendApi.js";
+import { makeId } from "../utilities/id.js";
 
 class ResultManagement {
   static allResults = {};
@@ -16,11 +18,15 @@ class ResultManagement {
   static getAllResults() {
     return this.allResults;
   }
+
+  static reset() {
+    this.allResults = {};
+  }
 }
 
 class Result {
   constructor(studentId, stationId, id) {
-    this.id = id || crypto.randomUUID();
+    this.id = id || makeId();
 
     this.studentId = studentId;
     this.stationId = stationId;
@@ -78,7 +84,21 @@ export function createResult(studentId, stationId, resultId, saveToLocal = true)
 
   // Hydration paths pass saveToLocal = false so restored records do not loop back.
   if (saveToLocal) {
-    addResultToLocalStorage();
+
+    void createResultRemote({
+      id: result.id,
+      studentId: result.studentId,
+      stationId: result.stationId,
+      procedureResults: result.procedureResults,
+      questionResults: result.questionResults,
+      procedureTotal: result.procedureTotal,
+      questionTotal: result.questionTotal,
+      procedurePercentage: result.procedurePercentage,
+      questionPercentage: result.questionPercentage,
+      status: result.status,
+    }).catch((error) => {
+      console.error("Failed to create backend result:", error);
+    });
   }
 
   return result;
@@ -90,6 +110,10 @@ export function getResult(resultId) {
 
 export function getAllResults() {
   return ResultManagement.getAllResults();
+}
+
+export function resetResults() {
+  ResultManagement.reset();
 }
 
 export function addProcedureScore(resultId, procedureId, score) {
@@ -139,4 +163,18 @@ export function getStationResults(stationId) {
   return Object.values(ResultManagement.getAllResults()).filter(
     (result) => result.stationId === stationId,
   );
+}
+
+export function removeResultsByStudent(studentId) {
+  const results = ResultManagement.getAllResults();
+  let changed = false;
+
+  for (const [resultId, result] of Object.entries(results)) {
+    if (result.studentId === studentId) {
+      delete results[resultId];
+      changed = true;
+    }
+  }
+
+  return changed;
 }

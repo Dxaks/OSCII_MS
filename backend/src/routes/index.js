@@ -17,9 +17,20 @@ router.get("/bootstrap", async (_req, res) => {
 router.post("/bootstrap", async (req, res) => {
   const nextDb = sanitizeBootstrapPayload(req.body || {});
 
+        if (
+          nextDb.users.length === 0 &&
+          nextDb.stations.length === 0 &&
+          nextDb.results.length === 0
+      ) {
+          return res.status(400).json({
+              message: "Refusing to overwrite the database with an empty snapshot."
+          });
+      }
+
   await updateDb(() => nextDb);
   res.json(nextDb);
 });
+
 
 router.post("/auth/login", async (req, res) => {
   const { username, password } = req.body || {};
@@ -442,21 +453,6 @@ router.get("/stations/:id/results", requireAuth, async (req, res) => {
   res.json({ results });
 });
 
-router.post("/results/snapshot", requireAuth, async (req, res) => {
-  try {
-    const db = await readDb();
-    const incomingResults = Array.isArray(req.body?.results)
-      ? req.body.results
-      : [];
-    db.results = mergeResults(db.results, incomingResults);
-
-    await updateDb(() => db);
-    res.json({ results: db.results });
-  } catch (error) {
-    console.error("Failed to save results snapshot:", error);
-    res.status(500).json({ message: "Failed to save results snapshot" });
-  }
-});
 
 router.get("/stations/:id/results.csv", requireAuth, async (req, res) => {
   const db = await readDb();

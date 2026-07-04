@@ -1,6 +1,6 @@
 # OSCII_MS
 
-OSCII_MS is a frontend-only OSCE/clinical assessment system built with vanilla JavaScript and Webpack. There is no backend yet. The current app keeps all runtime state in memory and mirrors it to `localStorage`, which means a future backend will need to replace the browser storage layer and own persistence, authentication, authorization, and result storage.
+OSCII_MS is a frontend-first OSCE/clinical assessment system built with vanilla JavaScript and Webpack. The repository now includes a backend starter under [`backend/`](./backend) for offline LAN use, and the frontend has been wired to it for login, persistence sync, and station result export.
 
 ## Project Goal
 
@@ -20,6 +20,7 @@ The backend developer should treat the current frontend as the contract for the 
 - `style-loader` and `css-loader`
 - `papaparse` for CSV imports
 - `notyf` for toast notifications
+- Backend starter: Express + PostgreSQL persistence + Node `crypto`
 
 ## How The App Starts
 
@@ -28,20 +29,20 @@ The backend developer should treat the current frontend as the contract for the 
 - Webpack config: [`webpack.config.js`](./webpack.config.js)
 - Global styles: [`src/style/default.css`](./src/style/default.css)
 
-On load, the app restores stations, users, and results from `localStorage`, then renders the home page.
+On load, the app restores stations, users, and results from the backend/local cache, then renders the home page.
 
 ## Current Architecture
 
 The app is split into two layers:
 
-- `src/app/`: in-memory data models and persistence helpers
+- `src/app/`: in-memory data models, API client, and persistence helpers
 - `src/dashboard/`: page rendering and user interaction flows
 
-There is no API client yet. All persistence happens in the browser.
+The browser still keeps a local cache for offline resilience, but the backend is the source of truth.
 
 ## Data Stores In Use Today
 
-These `localStorage` keys are the current source of truth in the browser:
+These `localStorage` keys are used as a local cache and fallback:
 
 - `allStations`
 - `allUsers`
@@ -50,9 +51,47 @@ These `localStorage` keys are the current source of truth in the browser:
 Important:
 
 - Data is stored as JSON strings.
-- The app hydrates state from these keys during startup.
-- CRUD updates immediately write back to `localStorage`.
-- Passwords are currently stored in plain text in the browser. This must be replaced by backend auth and hashing.
+- The app hydrates state from the backend first, then falls back to these keys.
+- CRUD updates still update the local cache for resilience.
+- Passwords are now authenticated by the backend and stored as password hashes in PostgreSQL.
+
+## Backend Starter
+
+Files:
+
+- [`backend/package.json`](./backend/package.json)
+- [`backend/src/server.js`](./backend/src/server.js)
+- [`backend/src/app.js`](./backend/src/app.js)
+- [`backend/src/routes/index.js`](./backend/src/routes/index.js)
+- [`backend/src/store/db.js`](./backend/src/store/db.js)
+
+What it does now:
+
+- Starts an Express server on `0.0.0.0:4000` by default
+- Seeds a default admin user on first launch if the database is empty
+- Exposes `/api/health`, `/api/auth/login`, `/api/users`, `/api/stations`, `/api/results`, and `/api/stations/:id/results.csv`
+- Stores data in PostgreSQL
+- Serves the built frontend from `dist/` when the build exists
+
+Connection note:
+
+- Put your Postgres connection string in `backend/.env` as `DATABASE_URL=...`
+- The backend loads that file automatically if it exists
+
+Default admin credentials for the starter:
+
+- username: `admin`
+- password: `admin123`
+
+Change `BOOTSTRAP_ADMIN_PASSWORD` before first launch if you want a different starter password.
+
+## Frontend To Backend Flow
+
+- Student and moderator login now go through the backend.
+- Admin access now opens an admin login screen before the dashboard.
+- Station changes, item edits, and result snapshots are synced back to the backend.
+- The admin result button now downloads CSV from the backend.
+- User edits and deletes now hit the backend directly.
 
 ## Core Data Models
 

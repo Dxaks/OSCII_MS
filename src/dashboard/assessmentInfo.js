@@ -3,6 +3,7 @@ import { renderLoginPage } from "./loginPage.js";
 import { showConfirmDialog, showNoticeDialog } from "../utilities/utility.js";
 import { getStudentResults } from "../app/result.js";
 import logo from "../asset/icons/account-circle.svg";
+import { clearAuthToken } from "../app/backendApi.js";
 
 export function renderAssessmentInfo(
   container,
@@ -161,6 +162,7 @@ export function renderAssessmentInfo(
       message: "Are you sure you want to leave this assessment?",
 
       onConfirm() {
+        clearAuthToken();
         renderLoginPage(container, station.id, type);
       },
     });

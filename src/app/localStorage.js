@@ -1,93 +1,152 @@
-import { createResult, getAllResults } from "./result.js";
-import { createStation, getAllStations } from "./stationManager.js";
-import { createUser, getAllUsers } from "./users.js";
+import { createResult, getAllResults, resetResults } from "./result.js";
+import { createStation, getAllStations, resetStations } from "./stationManager.js";
+import { createUser, getAllUsers, resetUsers } from "./users.js";
+import {
+  loadBootstrapSnapshot,
+  syncResultsSnapshot,
+} from "./backendApi.js";
 
-// Serialize the current station store so the browser can restore it on reload.
-export function saveStationToLocalStorage() {
-  const stations = getAllStations();
-  localStorage.setItem("allStations", JSON.stringify(stations));
-}
+
 
 // Rebuild station instances from the JSON snapshot stored in localStorage.
-export function retrieveStationsFromLocalStorage() {
-  const storage = localStorage.getItem("allStations");
-
-  if (storage) {
-    const allStations = JSON.parse(storage);
-
-    Object.values(allStations).forEach((station) => {
-      const stn = createStation(
-        station.name,
-        station.description,
-        station.id,
-        false,
-      );
-
-      Object.assign(stn, station);
-    });
-
-    return true;
-  }
-  return false;
+export async function retrieveStations() {
+  await hydrateAppState();
+  return true;
 }
 
-// Persist the current user store to localStorage.
-export function addUserToLocalStorage() {
-  const allUsers = getAllUsers();
 
-  if (allUsers) {
-    localStorage.setItem("allUsers", JSON.stringify(allUsers));
-  }
-}
 
 // Recreate users from localStorage so login continues to work after refresh.
-export function retrieveUsers() {
-  const allUsers = localStorage.getItem("allUsers");
-
-  if (allUsers !== null) {
-    const myUsers = JSON.parse(allUsers);
-
-    Object.values(myUsers).forEach((user) => {
-      const userConstructor = createUser(
-        user.surname,
-        user.firstname,
-        user.admissionNo,
-        user.username,
-        user.password,
-        user.role,
-        user.id,
-        null,
-        false,
-      );
-    });
-  }
-}
-
-// Persist assessment results so in-progress work is not lost on refresh.
-export function addResultToLocalStorage() {
-  const results = getAllResults();
-
-  localStorage.setItem("allResults", JSON.stringify(results));
-
+export async function retrieveUsers() {
+  await hydrateAppState();
   return true;
 }
 
 // Recreate result objects from localStorage and restore their progress state.
-export function retrieveResults() {
-  const results = localStorage.getItem("allResults");
+export async function retrieveResults() {
+  await hydrateAppState();
+  return true;
+}
 
-  if (results) {
-    const localResult = JSON.parse(results);
+let hydrationPromise = null;
 
-    Object.values(localResult).forEach((result) => {
-      const resultConstructor = createResult(
-        result.studentId,
-        result.stationId,
-        result.id,
-        false,
-      );
-
-      Object.assign(resultConstructor, result);
-    });
+async function hydrateAppState() {
+  if (hydrationPromise) {
+    return hydrationPromise;
   }
+
+  hydrationPromise = (async () => {
+    try {
+      const backendSnapshot = await loadBootstrapSnapshot();
+
+      if (hasMeaningfulData(backendSnapshot)) {
+        applySnapshot(backendSnapshot);
+
+        return backendSnapshot;
+      }
+    } catch {
+      // Continue to the local cache below.
+    }
+
+    const emptySnapshot = { users: [], stations: [], results: [] };
+    applySnapshot(emptySnapshot);
+
+    return emptySnapshot;
+  })();
+
+  return hydrationPromise;
+}
+
+function applySnapshot(snapshot) {
+  resetStations();
+  resetUsers();
+  resetResults();
+
+  const stations = normalizeStations(snapshot.stations);
+  const users = Array.isArray(snapshot.users) ? snapshot.users : [];
+  const results = normalizeResults(snapshot.results);
+
+  stations.forEach((station) => {
+    const stn = createStation(
+      station.name,
+      station.description,
+      station.id,
+      false,
+    );
+
+    Object.assign(stn, station);
+  });
+
+  users.forEach((user) => {
+    createUser(
+      user.surname,
+      user.firstname,
+      user.admissionNo,
+      user.username,
+      user.password ?? null,
+      user.role,
+      user.id,
+      user.image,
+      false,
+    );
+  });
+
+  results.forEach((result) => {
+    const resultConstructor = createResult(
+      result.studentId,
+      result.stationId,
+      result.id,
+      false,
+    );
+
+    Object.assign(resultConstructor, result);
+  });
+}
+
+
+function hasAnyData(snapshot) {
+  return (
+    normalizeStations(snapshot?.stations).length > 0 ||
+    Array.isArray(snapshot?.users) && snapshot.users.length > 0 ||
+    normalizeResults(snapshot?.results).length > 0
+  );
+}
+
+function hasMeaningfulData(snapshot) {
+  if (!hasAnyData(snapshot)) {
+    return false;
+  }
+
+  const users = Array.isArray(snapshot?.users) ? snapshot.users : [];
+  const stations = normalizeStations(snapshot?.stations);
+  const results = normalizeResults(snapshot?.results);
+
+  if (stations.length > 0 || results.length > 0) {
+    return true;
+  }
+
+  if (users.length === 0) {
+    return false;
+  }
+
+  if (users.length === 1) {
+    const [user] = users;
+    return user.username !== "admin";
+  }
+
+  return true;
+}
+
+
+function normalizeStations(stations) {
+  if (Array.isArray(stations)) return stations;
+  if (stations && typeof stations === "object") return Object.values(stations);
+  return [];
+}
+
+
+function normalizeResults(results) {
+  if (Array.isArray(results)) return results;
+  if (results && typeof results === "object") return Object.values(results);
+  return [];
 }

@@ -3,7 +3,9 @@ import {
   startProcedureTimer,
   procedureCompleted,
   showConfirmDialog,
+  withLoadingOverlay,
   updateResult,
+  syncResult,
 } from "../utilities/utility.js";
 import { renderLoginPage } from "./loginPage.js";
 import { renderProcedureInfo } from "./procedureAssessmentInfo.js";
@@ -135,12 +137,18 @@ export function renderProcedurePage(
       title: "Logout",
       message: "Are you sure you want to leave the current student assessment?",
 
-      onConfirm() {
-        updateResult();
+      async onConfirm() {
+        try {
+          await withLoadingOverlay("Saving assessment", async () => {
+            await syncResult(result);
 
-        clearInterval(timer);
+            clearInterval(timer);
 
-        renderProcedureInfo(container, station, moderator, type);
+            renderProcedureInfo(container, station, moderator, type);
+          });
+        } catch (error) {
+          console.error(error);
+        }
       },
     });
   });
@@ -152,13 +160,22 @@ export function renderProcedurePage(
 
       message: "Are you sure you to submit this assessment?",
 
-      onConfirm() {
-        // Convert the temporary rubric selections into scored result rows.
-        formulateEachProcedureScore(station, result);
-        procedureCompleted(result.id);
-        clearInterval(timer);
-        updateResult();
-        renderProcedureInfo(container, station, moderator, type);
+      async onConfirm() {
+        try {
+          await withLoadingOverlay("Submitting assessment", async () => {
+            // Convert the temporary rubric selections into scored result rows.
+            formulateEachProcedureScore(station, result);
+            procedureCompleted(result.id);
+
+            clearInterval(timer);
+
+            await syncResult(result);
+
+            renderProcedureInfo(container, station, moderator, type);
+          });
+        } catch (error) {
+          console.error(error);
+        }
       },
     });
   });
@@ -170,7 +187,10 @@ function renderProcedureItems(container, station, result) {
   station.procedureItems.forEach((item, index) => {
     const savedScore = result.procedureScores[item.id];
 
-    const isCompleted = result.procedureScores[item.id];
+    const isCompleted = Object.prototype.hasOwnProperty.call(
+      result.procedureScores,
+      item.id,
+    );
 
     const optionsHtml = item.scoreOptions
       .map((option) => {
@@ -227,7 +247,7 @@ function setupProcedureEvents(container, result) {
       const card = radio.closest(".procedure-item");
       card.classList.add("completed");
 
-      updateResult();
+      syncResult(result);
     });
   });
 }
@@ -242,12 +262,18 @@ function runProcedureTimer(
   type,
 ) {
   if (station.procedureTimer.enabled) {
-    return startProcedureTimer(result, station, timerElement, () => {
-      // Auto-submit when the timer expires so the result is finalized in one place.
-      formulateEachProcedureScore(station, result);
-      procedureCompleted(result.id);
-      updateResult();
-      renderProcedureInfo(container, station, moderator, type);
+    return startProcedureTimer(result, station, timerElement, async () => {
+      try {
+        await withLoadingOverlay("Submitting assessment", async () => {
+          // Auto-submit when the timer expires so the result is finalized in one place.
+          formulateEachProcedureScore(station, result);
+          procedureCompleted(result.id);
+          await syncResult(result);
+          renderProcedureInfo(container, station, moderator, type);
+        });
+      } catch (error) {
+        console.error(error);
+      }
     });
   }
 }
@@ -258,7 +284,7 @@ function formulateEachProcedureScore(station, result) {
     const procedureId = procedureItem.id;
     const selectedScore = result.procedureScores[procedureId];
 
-    if (selectedScore) {
+    if (selectedScore !== undefined && selectedScore !== null) {
       addProcedureScore(result.id, procedureId, selectedScore);
     }
   });

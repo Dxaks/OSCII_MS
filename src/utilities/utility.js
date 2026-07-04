@@ -2,6 +2,9 @@ import { getResult } from "../app/result.js";
 import { Notyf } from "notyf";
 import "notyf/notyf.min.css";
 import { addResultToLocalStorage } from "../app/localStorage.js";
+import { updateResultRemote } from "../app/backendApi.js";
+
+let loadingOverlay = null;
 
 export const notyf = new Notyf({
   duration: 1000,
@@ -30,6 +33,51 @@ export const notyf = new Notyf({
 
 export function formatStr(str) {
   return str.trim().toLocaleLowerCase();
+}
+
+export function showLoadingOverlay(message = "Loading application") {
+  if (loadingOverlay) {
+    const messageNode = loadingOverlay.querySelector(".loading-overlay-text");
+    loadingOverlay.querySelector(".loading-card").setAttribute("aria-label", message);
+    messageNode.textContent = message;
+    return loadingOverlay;
+  }
+
+  loadingOverlay = document.createElement("div");
+  loadingOverlay.className = "loading-overlay";
+  loadingOverlay.innerHTML = `
+    <div class="loading-card" role="status" aria-live="polite">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <p class="loading-overlay-text">${message}</p>
+    </div>
+  `;
+
+  loadingOverlay.querySelector(".loading-card").setAttribute("aria-label", message);
+  document.body.appendChild(loadingOverlay);
+  document.body.setAttribute("aria-busy", "true");
+
+  return loadingOverlay;
+}
+
+export function hideLoadingOverlay() {
+  if (!loadingOverlay) {
+    document.body.removeAttribute("aria-busy");
+    return;
+  }
+
+  loadingOverlay.remove();
+  loadingOverlay = null;
+  document.body.removeAttribute("aria-busy");
+}
+
+export async function withLoadingOverlay(message, action) {
+  showLoadingOverlay(message);
+
+  try {
+    return await action();
+  } finally {
+    hideLoadingOverlay();
+  }
 }
 
 export function showSubmitDialog({
@@ -273,14 +321,22 @@ export function startProcedureTimer(result, station, timerElement, onTimeUp) {
   return timerId;
 }
 
-export function updateResult() {
-  addResultToLocalStorage();
+
+export async function syncResult(result) {
+    try {
+        await updateResultRemote(result.id, result);
+    } catch (err) {
+        console.error(err);
+    }
 }
 
-export function updateResultAtRegularInterval() {
-  // Periodic snapshots reduce the chance of losing in-progress answers on refresh.
-  const timerId = setInterval(() => {
-    updateResult();
-  }, 10000);
-  return timerId;
-}
+// export function updateResultAtRegularInterval(result) {
+//   // Periodic snapshots reduce the chance of losing in-progress answers on refresh.
+
+//   console.trace("where di i call update at regular interval");
+
+//   const timerId = setInterval(() => {
+//     syncResult(result);
+//   }, 10000);
+//   return timerId;
+// }

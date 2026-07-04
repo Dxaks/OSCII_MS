@@ -3,8 +3,7 @@ import {
   importQuestions,
   importUsers,
 } from "../app/csvImporter.js";
-import { saveStationToLocalStorage } from "../app/localStorage.js";
-import { getAllResults, getStationResults } from "../app/result.js";
+import { getStationResults } from "../app/result.js";
 import {
   createStation,
   getAllStations,
@@ -15,16 +14,35 @@ import {
   toggleProcedureTimer,
   setQuestionTimerDuration,
   toggleQuestionTimer,
+  updateProcedureItem,
+  deleteProcedureItem,
+  updateQuestionItem,
+  deleteQuestionItem,
   deleteStation,
 } from "../app/stationManager.js";
 import {
   createUser,
   getUserById,
   getAllUsers,
+  updateUser,
   deleteUser,
 } from "../app/users.js";
-import { notyf, showConfirmDialog } from "../utilities/utility.js";
+import { addUserToLocalStorage, saveStationToLocalStorage } from "../app/localStorage.js";
+import {
+  notyf,
+  showConfirmDialog,
+  withLoadingOverlay,
+  updateResult,
+} from "../utilities/utility.js";
 import { renderHomePage } from "./homePage.js";
+import {
+  apiRequest,
+  clearAuthToken,
+  createUserRemote,
+  createStationRemote,
+  createQuestionRemote,
+  createProcedureItemRemote,
+} from "../app/backendApi.js";
 
 export function renderAdminDashboard(container) {
   container.innerHTML = `
@@ -69,6 +87,7 @@ function setupAdminEvents() {
   const container = document.querySelector("#content");
   const backBtn = container.querySelector(".back-to-home");
   backBtn.addEventListener("click", () => {
+    clearAuthToken();
     renderHomePage(container);
   });
 
@@ -223,53 +242,55 @@ function showCreateStationModal() {
 }
 
 // add user modal
-function showAddUserModal() {
+function showAddUserModal(user = null) {
+  const isEditMode = user !== null;
+
   openModal(
-    "Add User",
+    isEditMode ? "Edit User" : "Add User",
     `
     <form id="add-user-form" class="dashboard-form">
 
     <div class="form-group">
         <label>Role</label>
         <select name="role" class="role-selector">
-          <option value="admin">Admin</option>
-          <option value="moderator">Moderator</option>
-          <option value="student" selected >Student</option>
+          <option value="admin" ${user?.role === "admin" ? "selected" : ""}>Admin</option>
+          <option value="moderator" ${user?.role === "moderator" ? "selected" : ""}>Moderator</option>
+          <option value="student" ${!user || user.role === "student" ? "selected" : ""}>Student</option>
         </select>
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Surname</label>
-          <input type="text" name="surname" placeholder="e.g. Musa" required />
+          <input type="text" name="surname" placeholder="e.g. Musa" value="${user?.surname || ""}" required />
         </div>
 
         <div class="form-group">
           <label>Firstname</label>
-          <input type="text" name="firstname" placeholder="e.g. Aisha" required />
+          <input type="text" name="firstname" placeholder="e.g. Aisha" value="${user?.firstname || ""}" required />
         </div>
       </div>
 
       <div class="form-group admission-wrapper">
         <label>Admission No</label>
-        <input type="text" name="admissionNo" placeholder="e.g. UMCONS/23A BM/020" 
+        <input type="text" name="admissionNo" placeholder="e.g. UMCONS/23A BM/020" value="${user?.admissionNo || ""}"
         />
       </div>
       
       <div class="form-row">
         <div class="form-group">
           <label>Username</label>
-          <input type="text" name="username" required />
+          <input type="text" name="username" value="${user?.username || ""}" required />
         </div>
 
         <div class="form-group">
-          <label>Password</label>
-          <input type="password" name="password" required />
+          <label>${isEditMode ? "New Password" : "Password"}</label>
+          <input type="password" name="password" ${isEditMode ? "" : "required"} />
        </div>
       </div>
 
       <button class="form-submit-btn" type="submit">
-        Add User
+        ${isEditMode ? "Update User" : "Add User"}
       </button>
     </form>
   `,
@@ -283,12 +304,15 @@ function showAddUserModal() {
       roleSelect.value === "student" ? "block" : "none";
   });
 
+  admissionWrapper.style.display =
+    roleSelect.value === "student" ? "block" : "none";
+
   const form = document.querySelector("#add-user-form");
 
-  form.addEventListener("submit", handleAddUser);
+  form.addEventListener("submit", (e) => handleAddUser(e, user));
 }
 
-function handleCreateStation(e) {
+async function handleCreateStation(e) {
   e.preventDefault();
 
   const formData = new FormData(e.target);
@@ -296,13 +320,27 @@ function handleCreateStation(e) {
   const stationName = formData.get("stationName");
   const stationDescription = formData.get("stationDescription");
 
-  const station = createStation(stationName, stationDescription);
+  await withLoadingOverlay("Creating station", async () => {
 
-  if (station) {
+    const response = await createStationRemote(stationName, stationDescription);
+    const stationData = response.station;
+
+    const station = createStation(
+      stationData.name,
+      stationData.description,
+      stationData.id,
+      false,
+    );
+
+    Object.assign(station, stationData);
+    // saveStationToLocalStorage();
+
     const adminContent = document.querySelector("#admin-content");
     renderViewStations(adminContent);
     document.querySelector(".modal-overlay").remove();
-  }
+  }).catch((error) => {
+    notyf.error(error.message || "Failed to create station");
+  });
 }
 
 function renderStationPage(container, stationId) {
@@ -395,19 +433,19 @@ function renderStationPage(container, stationId) {
 
   const procedureInput = procedureBox.querySelector(".procedure-timer-input");
 
-  procedureToggle.addEventListener("change", () => {
-    toggleProcedureTimer(station.id);
+  procedureToggle.addEventListener("change", async () => {
+    await toggleProcedureTimer(station.id);
 
     if (!procedureToggle.checked) {
-      setProcedureTimerDuration(station.id, 0);
+      await setProcedureTimerDuration(station.id, 0);
     }
     renderStationPage(container, station.id);
   });
 
-  procedureInput.addEventListener("change", () => {
+  procedureInput.addEventListener("change", async () => {
     const seconds = Number(procedureInput.value);
 
-    setProcedureTimerDuration(station.id, seconds);
+    await setProcedureTimerDuration(station.id, seconds);
   });
 
   // edit procedure
@@ -515,19 +553,19 @@ procedureList.addEventListener(
 
   const questionInput = questionBox.querySelector(".question-timer-input");
 
-  questionToggle.addEventListener("change", () => {
-    toggleQuestionTimer(station.id);
+  questionToggle.addEventListener("change", async () => {
+    await toggleQuestionTimer(station.id);
 
     if (!questionToggle.checked) {
-      setQuestionTimerDuration(station.id, 0);
+      await setQuestionTimerDuration(station.id, 0);
     }
     renderStationPage(container, station.id);
   });
 
-  questionInput.addEventListener("change", () => {
+  questionInput.addEventListener("change", async () => {
     const seconds = Number(questionInput.value);
 
-    setQuestionTimerDuration(station.id, seconds);
+    await setQuestionTimerDuration(station.id, seconds);
   });
 
 
@@ -639,6 +677,9 @@ questionList.addEventListener(
   const resultContent = resultSection.querySelector(".result-content");
 
   const arrow = resultSection.querySelector(".result-arrow");
+  const refreshBtn = resultSection.querySelector(".refresh-result-btn");
+  const downloadBtn = resultSection.querySelector(".download-result-btn");
+  const tbody = resultSection.querySelector("tbody");
 
   resultContent.style.display = "none";
   arrow.addEventListener("click", () => {
@@ -647,6 +688,32 @@ questionList.addEventListener(
     resultContent.style.display = isHidden ? "block" : "none";
 
     arrow.textContent = isHidden ? "▲" : "▼";
+  });
+
+  refreshBtn.addEventListener("click", () => {
+    tbody.innerHTML = "";
+    displayResult(station, tbody);
+  });
+
+  downloadBtn.addEventListener("click", async () => {
+    try {
+      
+      const csv = await apiRequest(`/stations/${station.id}/results.csv`, {
+        method: "GET",
+      });
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${station.name.toLowerCase().replace(/[^a-z0-9-_]+/g, "-")}-results.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      notyf.error(error.message || "Failed to download result CSV");
+    }
   });
 
   container.appendChild(section);
@@ -663,7 +730,7 @@ questionList.addEventListener(
 
       const question = csvFile.files[0];
 
-      importQuestions(question, station.name, () => {
+      importQuestions(question, stationId, () => {
         renderStationPage(container, stationId);
       });
     }
@@ -681,14 +748,14 @@ questionList.addEventListener(
 
       const procedureItem = csvFile.files[0];
 
-      importProcedureItems(procedureItem, station.name, () => {
+      importProcedureItems(procedureItem, stationId, () => {
         renderStationPage(container, stationId);
       });
     }
   });
 }
 
-function showProcedureModal(stationId, container, procedure=null) {
+function showProcedureModal(stationId, container, procedure = null) {
 
   const overlay = document.createElement("div");
   const isEditMode = procedure !== null;
@@ -718,9 +785,17 @@ function showProcedureModal(stationId, container, procedure=null) {
           required
         >
 
-        <button type="submit">
-          Save Procedure
-        </button>
+        <div class="dialog-actions">
+          ${
+            isEditMode
+              ? '<button type="button" class="delete-procedure-btn">Delete</button>'
+              : ""
+          }
+
+          <button type="submit">
+            ${isEditMode ? "Update Procedure" : "Save Procedure"}
+          </button>
+        </div>
 
       </form>
 
@@ -743,9 +818,24 @@ function showProcedureModal(stationId, container, procedure=null) {
   form.addEventListener("submit", (e) => {
     handleProcedureSubmit(e, stationId, container, procedure);
   });
+
+  if (isEditMode) {
+    const deleteBtn = overlay.querySelector(".delete-procedure-btn");
+    deleteBtn.addEventListener("click", () => {
+      showConfirmDialog({
+        title: "Delete Procedure",
+        message: "Are you sure you want to delete this procedure item?",
+        async onConfirm() {
+          await deleteProcedureItem(stationId, procedure.id);
+          overlay.remove();
+          renderStationPage(container, stationId);
+        },
+      });
+    });
+  }
 }
 
-function handleProcedureSubmit(e, stationId, container, procedure) {
+async function handleProcedureSubmit(e, stationId, container, procedure) {
   e.preventDefault();
 
   const isEditMode = procedure !== null;
@@ -754,17 +844,31 @@ function handleProcedureSubmit(e, stationId, container, procedure) {
   const description = formData.get("description");
   const scoreOptions = formData.get("scoreOptions").split(",").map(Number);
 
-    if (isEditMode) {
-      procedure.description = description;
-      procedure.scoreOptions = scoreOptions;
-    } else {
-      const station = getStationById(stationId);
-      addProcedureToStation(station.name, description, scoreOptions);
-    }
+  await withLoadingOverlay(
+    isEditMode ? "Updating procedure item" : "Creating procedure item",
+    async () => {
+      if (isEditMode) {
+        await updateProcedureItem(
+          stationId,
+          procedure.id,
+          description,
+          scoreOptions,
+        );
+      } else {
+        await createProcedureItemRemote(stationId, {
+          description,
+          scoreOptions,
+        });
 
-  saveStationToLocalStorage();
-  document.querySelector(".modal-overlay").remove();
-  renderStationPage(container, stationId);
+        addProcedureToStation(stationId, description, scoreOptions);
+      }
+
+      document.querySelector(".modal-overlay").remove();
+      renderStationPage(container, stationId);
+    },
+  ).catch((error) => {
+    notyf.error(error.message || "Failed to save procedure item");
+  });
 }
 
 function showQuestionModal(stationId, container, question = null) {
@@ -836,9 +940,17 @@ function showQuestionModal(stationId, container, question = null) {
           required
         >
 
-      <button type="submit">
-        ${isEditMode ? "Update Question" : "Save Question"}
-      </button>
+      <div class="dialog-actions">
+        ${
+          isEditMode
+            ? '<button type="button" class="delete-question-btn">Delete</button>'
+            : ""
+        }
+
+        <button type="submit">
+          ${isEditMode ? "Update Question" : "Save Question"}
+        </button>
+      </div>
 
       </form>
 
@@ -861,9 +973,24 @@ function showQuestionModal(stationId, container, question = null) {
   form.addEventListener("submit", (e) => {
     handleQuestionSubmit(e, stationId, container, question);
   });
+
+  if (isEditMode) {
+    const deleteBtn = overlay.querySelector(".delete-question-btn");
+    deleteBtn.addEventListener("click", () => {
+      showConfirmDialog({
+        title: "Delete Question",
+        message: "Are you sure you want to delete this question?",
+        async onConfirm() {
+          await deleteQuestionItem(stationId, question.id);
+          overlay.remove();
+          renderStationPage(container, stationId);
+        },
+      });
+    });
+  }
 }
 
-function handleQuestionSubmit(e, stationId, container, question) {
+async function handleQuestionSubmit(e, stationId, container, question) {
   e.preventDefault();
 
     const formData = new FormData(e.target);
@@ -881,27 +1008,39 @@ function handleQuestionSubmit(e, stationId, container, question) {
 
   const isEditMode = question !== null;
 
-  if (isEditMode) {
-      question.description = description;
+  await withLoadingOverlay(
+    isEditMode ? "Updating question" : "Creating question",
+    async () => {
+      if (isEditMode) {
+        await updateQuestionItem(
+          stationId,
+          question.id,
+          description,
+          options,
+          answer,
+          mark,
+        );
+      } else {
+        await createQuestionRemote(stationId, {
+          description,
+          options,
+          answer,
+          mark,
+        });
 
-      question.options = options;
+        addQuestionToStation(stationId, description, options, answer, mark);
+      }
 
-      question.answer = answer;
-
-      question.mark = mark;
-  } else {
-
-    const station = getStationById(stationId);
-    addQuestionToStation(station.name, description, options, answer, mark);
-  }
-
-  saveStationToLocalStorage();
-  document.querySelector(".modal-overlay").remove();
-  renderStationPage(container, stationId);
+      document.querySelector(".modal-overlay").remove();
+      renderStationPage(container, stationId);
+    },
+  ).catch((error) => {
+    notyf.error(error.message || "Failed to save question");
+  });
 }
 
 
-function handleAddUser(e) {
+async function handleAddUser(e, existingUser = null) {
   e.preventDefault();
 
   const formData = new FormData(e.target);
@@ -912,21 +1051,52 @@ function handleAddUser(e) {
   const role = formData.get("role");
   const admissionNo = role === "student" ? formData.get("admissionNo") : null;
 
-  const user = createUser(
-    surname,
-    firstname,
-    admissionNo,
-    username,
-    password,
-    role,
-    null,
-    null,
-  );
+  if (existingUser) {
+    await withLoadingOverlay("Updating user", async () => {
+      await updateUser(existingUser.id, {
+        surname,
+        firstname,
+        username,
+        role,
+        admissionNo,
+        password: password || undefined,
+      });
 
-  if (user) {
-    notyf.success("user created successfully!");
+      notyf.success("user updated successfully!");
+    }).catch((error) => {
+      notyf.error(error.message || "Failed to update user");
+    });
+  } else {
+    await withLoadingOverlay("Creating user", async () => {
+      const response = await createUserRemote({
+        surname,
+        firstname,
+        admissionNo,
+        username,
+        password,
+        role,
+        image: "",
+      });
+
+      createUser(
+        response.user.surname,
+        response.user.firstname,
+        response.user.admissionNo,
+        response.user.username,
+        null,
+        response.user.role,
+        response.user.id,
+        response.user.image,
+        false,
+      );
+
+      notyf.success("user created successfully!");
+    }).catch((error) => {
+      notyf.error(error.message || "Failed to create user");
+    });
   }
 
+  renderUsers(document.querySelector("#content"));
   document.querySelector(".modal-overlay").remove();
 }
 
@@ -1093,6 +1263,13 @@ function renderUsers(container) {
   });
 
   tbody.addEventListener("click", (e) => {
+    if (e.target.classList.contains("edit-user-btn")) {
+      const userId = e.target.dataset.userId;
+      const user = getUserById(userId);
+      showAddUserModal(user);
+      return;
+    }
+
     if (e.target.classList.contains("delete-user-btn")) {
       const userId = e.target.dataset.userId;
       const user = getUserById(userId);
@@ -1100,10 +1277,14 @@ function renderUsers(container) {
       showConfirmDialog({
         title: "delete user",
         message: `Are you sure you want to delete this user ${user.firstname} ${user.surname} and all it's data`,
-        onConfirm() {
-          deleteUser(userId);
-          renderUsers(container);
-          notyf.success("user removed successfully");
+        async onConfirm() {
+          await withLoadingOverlay("Deleting user", async () => {
+            await deleteUser(userId);
+            renderUsers(container);
+            notyf.success("user removed successfully");
+          }).catch((error) => {
+            notyf.error(error.message || "Failed to delete user");
+          });
         },
       });
     }
@@ -1158,9 +1339,13 @@ function showStationDeleteDialog(container, article, station) {
     showConfirmDialog({
       title: "Delete",
       message: `Are you sure you want to delete ${station.name}`,
-      onConfirm() {
-        deleteStation(station.id);
-        renderViewStations(container);
+      async onConfirm() {
+        await withLoadingOverlay("Deleting station", async () => {
+          await deleteStation(station.id);
+          renderViewStations(container);
+        }).catch((error) => {
+          notyf.error(error.message || "Failed to delete station");
+        });
       },
     });
   });

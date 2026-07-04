@@ -1,12 +1,15 @@
 import { addQuestionScore, createResult, getResult } from "../app/result.js";
 import { getStationById } from "../app/stationManager.js";
+import { clearAuthToken } from "../app/backendApi.js";
 import {
   showSubmitDialog,
   showConfirmDialog,
+  withLoadingOverlay,
   startQuestionTimer,
   questionCompleted,
   updateResult,
   updateResultAtRegularInterval,
+  syncResult
 } from "../utilities/utility.js";
 import { renderLoginPage } from "./loginPage.js";
 
@@ -31,7 +34,7 @@ export function renderQuestionPage(
     result.timeRemaining = station.questionTimer.duration * 60;
   }
 
-  const timerUpdater = updateResultAtRegularInterval();
+  // const timerUpdater = updateResultAtRegularInterval(result);
 
   container.innerHTML = `
 
@@ -144,12 +147,19 @@ export function renderQuestionPage(
 
       message: "Are you sure you want to leave this assessment?",
 
-      onConfirm() {
-        updateResult();
-        clearInterval(timer);
-        clearInterval(timerUpdater);
+      async onConfirm() {
+        try {
+          await withLoadingOverlay("Saving assessment", async () => {
+            await syncResult(result);
+            clearInterval(timer);
+            // clearInterval(timerUpdater);
+            clearAuthToken();
 
-        renderLoginPage(container, station.id, type);
+            renderLoginPage(container, station.id, type);
+          });
+        } catch (error) {
+          console.error(error);
+        }
       },
     });
   });
@@ -166,13 +176,20 @@ export function renderQuestionPage(
 
       unansweredQuestions,
 
-      onConfirm() {
-        // Convert stored answers into scored question results before finalizing.
-        formulateEachQuestionScore(container, user, station, result);
-        questionCompleted(result.id);
-        clearInterval(timer);
-        clearInterval(timerUpdater);
-        updateResult();
+      async onConfirm() {
+        try {
+          await withLoadingOverlay("Submitting assessment", async () => {
+            // Convert stored answers into scored question results before finalizing.
+            const finalResult = formulateEachQuestionScore(station, result);
+            questionCompleted(result.id);
+            clearInterval(timer);
+            // clearInterval(timerUpdater);
+            await syncResult(result);
+            renderResultPage(container, user, station, finalResult);
+          });
+        } catch (error) {
+          console.error(error);
+        }
       },
     });
   });
@@ -219,8 +236,6 @@ function renderQuestion(container, station, result) {
 
     `;
 
-  updateResult();
-
   setupQuestionEvents(container, station, result);
 }
 
@@ -259,7 +274,8 @@ function setupQuestionEvents(container, station, result) {
       const navBtn = document.querySelector(`[data-index="${index}"]`);
 
       navBtn.classList.add("answered");
-      updateResult();
+      
+      syncResult(result)
     });
   });
 }
@@ -278,7 +294,7 @@ function getUnansweredQuestions(station, result) {
 
 // formulate score for each station question
 
-function formulateEachQuestionScore(container, user, station, result) {
+function formulateEachQuestionScore(station, result) {
   station.questions.forEach((question) => {
     const selectedAnswer = result.studentAnswers[question.id];
 
@@ -292,8 +308,7 @@ function formulateEachQuestionScore(container, user, station, result) {
     station.procedureItems.length,
     station.questions.length,
   );
-
-  renderResultPage(container, user, station, finalResult);
+  return finalResult;
 }
 
 function renderResultPage(container, user, station, result) {
@@ -358,6 +373,7 @@ function renderResultPage(container, user, station, result) {
   logOut.addEventListener("click", (e) => {
     const targetbtn = e.target.closest(".result-home-btn");
     if (targetbtn) {
+      clearAuthToken();
       renderLoginPage(container, station.id);
     }
   });
@@ -366,9 +382,21 @@ function renderResultPage(container, user, station, result) {
 function runQuestionTimer(container, timerElement, station, user, result) {
   if (station.questionTimer.enabled) {
     // When the timer expires, the attempt is scored and the UI moves to results.
-    return startQuestionTimer(result, station, timerElement, () => {
-      formulateEachQuestionScore(container, user, station, result);
-      questionCompleted(result.id);
+    return startQuestionTimer(result, station, timerElement, async () => {
+       
+      try {
+        await withLoadingOverlay("Submitting assessment", async () => {
+        
+          const finalResult = formulateEachQuestionScore(station, result);
+          console.log("After formulate:", finalResult);
+          questionCompleted(result.id);
+          await syncResult(result);
+          
+          renderResultPage(container, user, station, finalResult);
+        });
+      } catch (error) {
+        console.error(error);
+      }
     });
   }
 }

@@ -4,6 +4,7 @@ import { createResult, getStudentResults } from "../app/result.js";
 import { renderProcedurePage } from "./examinerDashboard.js";
 import { renderLoginPage } from "./loginPage.js";
 import logo from "../asset/icons/account-circle.svg";
+import { clearAuthToken } from "../app/backendApi.js";
 
 export function renderProcedureInfo(container, station, moderator, type) {
   container.innerHTML = `
@@ -83,6 +84,7 @@ export function renderProcedureInfo(container, station, moderator, type) {
       message: "Are you sure you want to leave the current student assessment?",
 
       onConfirm() {
+        clearAuthToken();
         renderLoginPage(container, station.id, type);
       },
     });
