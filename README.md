@@ -118,6 +118,8 @@ If `dist/` exists, the backend serves the compiled frontend automatically.
 - Login is handled by the backend at `POST /api/auth/login`
 - The returned token is stored in browser local storage under `oscii_auth_token`
 - Admin access is guarded in the UI and on the backend
+- When a user opens a question or procedure station from the main menu, the login page shows a back button that now opens a separate admin verification dialog before returning to the main menu
+- That dialog is only for returning to the main menu from station login pages and does not change the normal student or moderator login flow
 
 ### Assessments
 
@@ -130,6 +132,7 @@ If `dist/` exists, the backend serves the compiled frontend automatically.
 - Station, question, procedure item, and user changes are sent to the backend API
 - CSV imports for users, questions, and procedure items are handled in the frontend and saved through API calls
 - Station results can be downloaded as CSV from the backend
+- The admin verification dialog for leaving a procedure or question login page uses the existing admin account credentials and is separate from the normal login form
 
 ## Main Screens
 

@@ -34,8 +34,6 @@ export function renderQuestionPage(
     result.timeRemaining = station.questionTimer.duration * 60;
   }
 
-  // const timerUpdater = updateResultAtRegularInterval(result);
-
   container.innerHTML = `
 
         <div class="question-page">
@@ -43,7 +41,7 @@ export function renderQuestionPage(
             <div class="question-header">
                 <div>
                     <h1>
-                        ${station.name}
+                        ${station.questionName}
                     </h1>
 
                     <p>
@@ -138,6 +136,7 @@ export function renderQuestionPage(
     station,
     user,
     result,
+    type
   );
 
   const logoutBtn = container.querySelector(".logout-btn");
@@ -152,9 +151,8 @@ export function renderQuestionPage(
           await withLoadingOverlay("Saving assessment", async () => {
             await syncResult(result);
             clearInterval(timer);
-            // clearInterval(timerUpdater);
-            clearAuthToken();
 
+            clearAuthToken();
             renderLoginPage(container, station.id, type);
           });
         } catch (error) {
@@ -183,9 +181,9 @@ export function renderQuestionPage(
             const finalResult = formulateEachQuestionScore(station, result);
             questionCompleted(result.id);
             clearInterval(timer);
-            // clearInterval(timerUpdater);
+
             await syncResult(result);
-            renderResultPage(container, user, station, finalResult);
+            renderResultPage(container, user, station, finalResult, type);
           });
         } catch (error) {
           console.error(error);
@@ -311,7 +309,7 @@ function formulateEachQuestionScore(station, result) {
   return finalResult;
 }
 
-function renderResultPage(container, user, station, result) {
+function renderResultPage(container, user, station, result, type) {
   container.innerHTML = `
 
         <div class="result-page">
@@ -374,12 +372,12 @@ function renderResultPage(container, user, station, result) {
     const targetbtn = e.target.closest(".result-home-btn");
     if (targetbtn) {
       clearAuthToken();
-      renderLoginPage(container, station.id);
+      renderLoginPage(container, station.id, type);
     }
   });
 }
 
-function runQuestionTimer(container, timerElement, station, user, result) {
+function runQuestionTimer(container, timerElement, station, user, result, type) {
   if (station.questionTimer.enabled) {
     // When the timer expires, the attempt is scored and the UI moves to results.
     return startQuestionTimer(result, station, timerElement, async () => {
@@ -392,7 +390,7 @@ function runQuestionTimer(container, timerElement, station, user, result) {
           questionCompleted(result.id);
           await syncResult(result);
           
-          renderResultPage(container, user, station, finalResult);
+          renderResultPage(container, user, station, finalResult, type);
         });
       } catch (error) {
         console.error(error);

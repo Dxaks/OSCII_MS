@@ -340,3 +340,13 @@ export async function syncResult(result) {
 //   }, 10000);
 //   return timerId;
 // }
+
+// prevent creating or updating sation (question / procedure) without timer to avoid returning negetive timer
+export function checkIfStationHasActiveTimers(questionTimerDuration, procedureTimerDuration) {
+
+  if (!questionTimerDuration || !procedureTimerDuration) {
+    return false
+  }
+  
+  return true;
+}

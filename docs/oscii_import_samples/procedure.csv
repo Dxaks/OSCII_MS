@@ -1,0 +1,8 @@
+description,socre
+Hand Hygiene: Wash hands before interacting with the patient,0.5
+Identify Patient: Verify two identifiers (e.g name and date of birth),0.2
+Environment: Ensure privacy adjust room temperature and check for safety or precautions.,0.6
+General Survey: Assess the patient's level of consciousness mood nutritional status and physical signs of distress.,1
+Check for symmetry and normative ranges.Heart Rate (HR): Count beats per minute (usually 60–100 bpm) and note the rhythm. Respiratory Rate (RR) & Oxygen Saturation (SpO₂),0.5
+Record rate depth and effort of breathing.,0.3
+Temperature: Record in Celsius or Fahrenheit.,0.2

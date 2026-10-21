@@ -1,4 +1,5 @@
 import { getAllStations } from "../app/stationManager.js";
+import { clearSession } from "../session/session.js";
 import { renderHomePage } from "./homePage.js";
 import { renderLoginPage } from "./loginPage.js";
 
@@ -43,7 +44,7 @@ export function renderMainMenu(container) {
 
     procedureBtn.className = "menu-btn procedure-btn";
 
-    procedureBtn.textContent = `Procedure ${station.name}`;
+    procedureBtn.textContent = `${station.procedureName}`;
 
     procedureBtn.dataset.type = "procedure";
 
@@ -53,7 +54,7 @@ export function renderMainMenu(container) {
 
     questionBtn.className = "menu-btn question-btn";
 
-    questionBtn.textContent = `Questions ${station.name}`;
+    questionBtn.textContent = `${station.questionName}`;
 
     questionBtn.dataset.type = "question";
 
@@ -72,6 +73,8 @@ export function renderMainMenu(container) {
 
     const stationId = btn.dataset.stationId;
     const type = btn.dataset.type;
+
+    clearSession("session");
 
     renderLoginPage(container, stationId, type);
   });

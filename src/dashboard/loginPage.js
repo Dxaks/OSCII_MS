@@ -8,15 +8,101 @@ import { showNoticeDialog, withLoadingOverlay } from "../utilities/utility.js";
 import { getStudentResults } from "../app/result.js";
 import { renderProcedureInfo } from "./procedureAssessmentInfo.js";
 import { clearAuthToken, setAuthToken } from "../app/backendApi.js";
+import { showAdminReturnDialog } from "./adminReturnDialog.js";
+import { clearSession, saveBrowserSession } from "../session/session.js";
+
+const PROTECTED_LOGIN_STATE = "protected-login";
+
+let protectedLoginContext = null;
+let protectedLoginPopStateBound = false;
+let restoringProtectedLogin = false;
+
+function isProtectedLogin(type) {
+  return type === "procedure" || type === "question";
+}
+
+function bindProtectedLoginPopState() {
+  if (protectedLoginPopStateBound) {
+    return;
+  }
+
+  // The browser back button should never escape a protected login flow without
+  // first passing through admin verification, so we keep one global popstate
+  // trap for the lifetime of the app.
+  window.addEventListener("popstate", handleProtectedLoginPopState);
+  protectedLoginPopStateBound = true;
+}
+
+function leaveProtectedLoginFlow() {
+  protectedLoginContext = null;
+  restoringProtectedLogin = false;
+}
+
+function syncProtectedLoginHistory(container, stationId, type) {
+  if (!isProtectedLogin(type)) {
+    leaveProtectedLoginFlow();
+    return;
+  }
+
+  protectedLoginContext = {container, stationId, type};
+
+  const protectedState = {
+    view: PROTECTED_LOGIN_STATE,
+    stationId: stationId,
+    type: type,
+  };
+
+  const currentState = window.history.state;
+  // Keep the current entry marked as protected login so a refresh or browser
+  // back action can be restored to the same guarded screen.
+  if (
+    currentState?.view !== protectedState.view ||
+    currentState?.stationId !== stationId ||
+    currentState?.type !== type
+  ) {
+    window.history.pushState(protectedState, "", window.location.href);
+  } else {
+    window.history.replaceState(protectedState, "", window.location.href);
+  }
+
+  bindProtectedLoginPopState();
+}
+
+function handleProtectedLoginPopState() {
+  if (!protectedLoginContext) {
+    return;
+  }
+
+  if (restoringProtectedLogin) {
+    restoringProtectedLogin = false;
+    return;
+  }
+
+  const {container} = protectedLoginContext;
+
+  // The browser has already moved one step back, so immediately move it
+  // forward again and keep the protected login visible until an admin approves.
+  restoringProtectedLogin = true;
+  window.history.forward();
+
+  showAdminReturnDialog(() => {
+    clearSession("session");
+    clearAuthToken();
+    leaveProtectedLoginFlow();
+    window.history.replaceState({view: "main-menu"}, "", window.location.href);
+    renderMainMenu(container);
+  });
+}
 
 export function renderLoginPage(container, stationId, type) {
+
   const station = stationId ? getStationById(stationId) : null;
   const overlayTitle =
     type === "admin"
       ? "Admin Login"
       : type === "procedure"
-        ? `Procedure ${station?.name || ""}`
-        : `Question ${station?.name || ""}`;
+        ? `${station?.procedureName || ""}`
+        : `Question ${station?.questionName || ""}`;
 
   container.innerHTML = `
 
@@ -93,11 +179,20 @@ export function renderLoginPage(container, stationId, type) {
 
 `;
 
+
+  if (isProtectedLogin(type)) {
+    saveBrowserSession({stationId: stationId, type: type});
+  }
+
+  syncProtectedLoginHistory(container, stationId, type);
+
   setupLoginEvents(container, stationId, type);
+
 }
 
+
 function setupLoginEvents(container, stationId, type) {
-  const form = document.querySelector(".login-form");
+  const form = container.querySelector(".login-form");
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -135,6 +230,8 @@ function setupLoginEvents(container, stationId, type) {
           setAuthToken(user.token);
         }
 
+        clearSession("session");
+        leaveProtectedLoginFlow();
         renderAdminDashboard(container);
         return;
       }
@@ -163,6 +260,8 @@ function setupLoginEvents(container, stationId, type) {
           setAuthToken(user.token);
         }
 
+        clearSession("session");
+        leaveProtectedLoginFlow();
         const existingResult = getStudentResults(user.id, station.id);
         renderAssessmentInfo(container, user, station, type, existingResult);
       }
@@ -173,23 +272,36 @@ function setupLoginEvents(container, stationId, type) {
           setAuthToken(user.token);
         }
 
+        clearSession("session");
+        leaveProtectedLoginFlow();
         renderProcedureInfo(container, station, user, type);
       }
     });
   });
 
-  const bactToMenu = container.querySelector(".back-btn");
-  bactToMenu.addEventListener("click", (e) => {
+  const backToMenu = container.querySelector(".back-btn");
+  backToMenu.addEventListener("click", (e) => {
     const targetBtn = e.target.closest(".back-btn");
     if (targetBtn) {
       clearAuthToken();
 
       if (type === "admin") {
+        clearSession("session");
         renderHomePage(container);
         return;
       }
 
+      if (type === "procedure" || type === "question") {
+        showAdminReturnDialog(() => {
+          clearSession("session");
+          renderMainMenu(container);
+        });
+        return;
+      }
+
+      clearSession("session");
       renderMainMenu(container);
     }
+
   });
 }

@@ -46,9 +46,13 @@ class StationManagement {
 }
 
 class Station {
-  constructor(name, description, id) {
+  constructor(name, description, id, questionName, procedureName) {
     this.name = name;
     this.description = description;
+
+    this.questionName = questionName || `Question ${name}`;
+    this.procedureName = procedureName || `Procedure ${name}`;
+
     this.id = id || makeId();
     this.procedureItems = [];
     this.questions = [];
@@ -293,13 +297,14 @@ export async function deleteQuestionItem(stationId, questionId) {
   const station = StationManagement.getStationById(stationId);
   if (!station) return false;
 
-  station.questions = station.questions.filter(
-    (question) => question.id !== questionId,
+  const targetQuestion = station.questions.find(
+    (question) => question.id === questionId,
   );
 
+  if(!targetQuestion) return false;
 
   try {
-    await deleteQuestionRemote(stationId, questionId);
+    await deleteQuestionRemote(station.id, targetQuestion.id);
   } catch (error) {
     notyf.error(error.message || "Failed to delete question");
   }

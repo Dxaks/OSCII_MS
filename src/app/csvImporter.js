@@ -67,14 +67,17 @@ export function importUsers(csvData, onComplete) {
   });
 }
 
+
 export function importQuestions(csvData, stationId, onComplete) {
   Papa.parse(csvData, {
     header: false,
     skipFirstNLines: 1,
     skipEmptyLines: true,
     complete: function (result) {
+
       // Expect 7 columns: description, option1-4, answer, mark.
       withLoadingOverlay("Importing questions", async () => {
+        
         for (const data of result.data) {
           if (data.length !== 7) {
             notyf.error("Incomplete data, check the csv");
@@ -82,9 +85,38 @@ export function importQuestions(csvData, stationId, onComplete) {
           }
 
           const description = data[0];
-          const options = [data[1], data[2], data[3], data[4]];
-          const answer = data[5];
+
+          const options = data.slice(1, 5).map((option) => option?.trim()).filter((option) => option !== "");
+
+          // const options = [data[1], data[2], data[3], data[4]];
+
+          const answer = data[5]?.trim();
           const mark = Number(data[6]);
+
+
+          // Validate the question before sending it to the backend.
+          if (!description) {
+            notyf.error("Question description is required.");
+            continue;
+          }
+
+          if (options.length < 2) {
+            notyf.error(`"${description}" must have at least two options.`);
+            continue;
+          }
+
+          if (!answer || !options.includes(answer)) {
+            notyf.error(
+              `The correct answer for "${description}" must match one of its options.`,
+            );
+            continue;
+          }
+
+          if (!Number.isFinite(mark) || mark <= 0) {
+            notyf.error(`"${description}" has an invalid mark.`);
+            continue;
+          }
+
 
           try {
             await createQuestionRemote(stationId, {
@@ -93,6 +125,7 @@ export function importQuestions(csvData, stationId, onComplete) {
               answer,
               mark,
             });
+
 
             addQuestionToStation(stationId, description, options, answer, mark);
           } catch (error) {
@@ -112,6 +145,7 @@ export function importQuestions(csvData, stationId, onComplete) {
     },
   });
 }
+
 
 export function importProcedureItems(csvData, stationId, onComplete) {
   Papa.parse(csvData, {

@@ -33,6 +33,8 @@ import {
   showConfirmDialog,
   withLoadingOverlay,
   updateResult,
+  checkIfStationHasActiveTimers,
+  showNoticeDialog,
 } from "../utilities/utility.js";
 import { renderHomePage } from "./homePage.js";
 import {
@@ -353,8 +355,20 @@ function renderStationPage(container, stationId) {
   backBtn.textContent = "← Back";
 
   backBtn.addEventListener("click", () => {
+
+    // force the user to set timer before exiting the station
+    const isTheTimerSet = checkIfStationHasActiveTimers(station.questionTimer.duration, station.procedureTimer.duration)
+
+    if (!isTheTimerSet) {
+      showNoticeDialog({title: "Station Timer Configuration", message: "Please set up the station (procedure / question) timer"});
+
+      return;
+    }
+
     renderAdminDashboard(container);
+
   });
+  
 
   const section = document.createElement("section");
   section.className = "station-management-page";
@@ -372,7 +386,7 @@ function renderStationPage(container, stationId) {
   procedureBox.className = "station-box";
 
   procedureBox.innerHTML = `
-    <h3>Procedure ${station.name}</h3>
+    <h3>${station.procedureName}</h3>
     <p>${station.procedureItems.length} Procedure Items</p>
 
     <ul class="procedure-list">
@@ -487,7 +501,7 @@ procedureList.addEventListener(
   questionBox.className = "station-box";
 
   questionBox.innerHTML = `
-    <h3>Question ${station.name}</h3>
+    <h3>${station.questionName}</h3>
     <p>${station.questions.length} Questions</p>
 
     <ul class="question-list">
@@ -570,8 +584,7 @@ procedureList.addEventListener(
 
 
   // edit question
-  const questionList =
-  questionBox.querySelector(".question-list");
+  const questionList = questionBox.querySelector(".question-list");
 
 questionList.addEventListener(
   "click",

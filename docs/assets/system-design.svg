@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">OSCII_MS System Design</title>
+  <desc id="desc">Architecture diagram showing browser frontend, Express API, and PostgreSQL database.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 18; ry: 18; }
+      .accent { fill: #1d4ed8; }
+      .muted { fill: #475569; font: 500 18px Arial, sans-serif; }
+      .title { fill: #0f172a; font: 700 26px Arial, sans-serif; }
+      .label { fill: #0f172a; font: 700 22px Arial, sans-serif; }
+      .small { fill: #334155; font: 400 16px Arial, sans-serif; }
+      .line { stroke: #334155; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .soft-line { stroke: #64748b; stroke-width: 3; fill: none; marker-end: url(#arrowSoft); stroke-dasharray: 8 8; }
+      .chip { fill: #dbeafe; stroke: #93c5fd; stroke-width: 1.5; rx: 999; ry: 999; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrowSoft" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1600" height="900"/>
+
+  <text x="80" y="70" class="title">OSCII_MS System Design</text>
+  <text x="80" y="102" class="muted">Frontend SPA, Express API, and PostgreSQL persistence</text>
+
+  <rect class="card" x="80" y="170" width="370" height="260"/>
+  <rect class="card" x="615" y="170" width="370" height="260"/>
+  <rect class="card" x="1150" y="170" width="370" height="260"/>
+
+  <rect class="chip" x="126" y="216" width="110" height="34" rx="17" ry="17"/>
+  <rect class="chip" x="136" y="264" width="156" height="34" rx="17" ry="17"/>
+  <rect class="chip" x="125" y="312" width="185" height="34" rx="17" ry="17"/>
+  <rect class="chip" x="122" y="360" width="170" height="34" rx="17" ry="17"/>
+
+  <text x="180" y="239" text-anchor="middle" class="small">Browser</text>
+  <text x="214" y="287" text-anchor="middle" class="small">Webpack SPA</text>
+  <text x="217" y="335" text-anchor="middle" class="small">Dashboard screens</text>
+  <text x="207" y="383" text-anchor="middle" class="small">localStorage token</text>
+
+  <text x="670" y="216" class="label">Express API</text>
+  <text x="670" y="252" class="small">Routes under /api</text>
+  <text x="670" y="288" class="small">Auth and role checks</text>
+  <text x="670" y="324" class="small">CRUD for users, stations, results</text>
+  <text x="670" y="360" class="small">CSV export and bootstrap snapshot</text>
+
+  <text x="1205" y="216" class="label">PostgreSQL</text>
+  <text x="1205" y="252" class="small">users</text>
+  <text x="1205" y="286" class="small">stations</text>
+  <text x="1205" y="320" class="small">results</text>
+  <text x="1205" y="354" class="small">JSONB nested state</text>
+
+  <line class="line" x1="450" y1="300" x2="615" y2="300"/>
+  <line class="line" x1="985" y1="300" x2="1150" y2="300"/>
+  <line class="soft-line" x1="800" y1="430" x2="800" y2="525"/>
+
+  <rect class="card" x="200" y="525" width="1200" height="250"/>
+  <text x="230" y="570" class="label">Core Runtime Flow</text>
+
+  <rect class="chip" x="230" y="605" width="205" height="44" rx="22" ry="22"/>
+  <rect class="chip" x="480" y="605" width="220" height="44" rx="22" ry="22"/>
+  <rect class="chip" x="745" y="605" width="220" height="44" rx="22" ry="22"/>
+  <rect class="chip" x="1010" y="605" width="310" height="44" rx="22" ry="22"/>
+
+  <text x="333" y="633" text-anchor="middle" class="small">GET /api/bootstrap</text>
+  <text x="590" y="633" text-anchor="middle" class="small">Hydrate in-memory state</text>
+  <text x="855" y="633" text-anchor="middle" class="small">User actions in SPA</text>
+  <text x="1165" y="633" text-anchor="middle" class="small">Authenticated API mutations</text>
+
+  <line class="line" x1="435" y1="627" x2="480" y2="627"/>
+  <line class="line" x1="700" y1="627" x2="745" y2="627"/>
+  <line class="line" x1="965" y1="627" x2="1010" y2="627"/>
+
+  <text x="230" y="700" class="small">Assessment progress, timers, and answer maps live in the result object and are synced with PATCH /api/results/:id.</text>
+  <text x="230" y="732" class="small">Admin management flows go through the backend and then refresh the frontend state from the updated snapshot.</text>
+</svg>
+

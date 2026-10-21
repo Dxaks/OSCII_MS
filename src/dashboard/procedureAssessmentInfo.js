@@ -31,7 +31,7 @@ export function renderProcedureInfo(container, station, moderator, type) {
 
             <div class="station-info procedure-info-card">
 
-                <h1>Procedure ${station.name}</h1>
+                <h1>${station.procedureName}</h1>
 
                 <p>
                     Procedure Items:

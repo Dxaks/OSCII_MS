@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200" role="img" aria-labelledby="title desc">
+  <title id="title">OSCII_MS Entity Relation Diagram</title>
+  <desc id="desc">Entity relationship diagram for users, stations, and results tables.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .table { fill: #ffffff; stroke: #1d4ed8; stroke-width: 2.5; rx: 18; ry: 18; }
+      .head { fill: #dbeafe; }
+      .title { fill: #0f172a; font: 700 30px Arial, sans-serif; }
+      .label { fill: #0f172a; font: 700 22px Arial, sans-serif; }
+      .field { fill: #334155; font: 400 17px Arial, sans-serif; }
+      .key { fill: #1d4ed8; font: 700 17px Arial, sans-serif; }
+      .note { fill: #475569; font: 400 16px Arial, sans-serif; }
+      .line { stroke: #334155; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .card-title { fill: #0f172a; font: 700 20px Arial, sans-serif; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1800" height="1200"/>
+  <text x="80" y="70" class="title">OSCII_MS Entity Relation Diagram</text>
+  <text x="80" y="104" class="note">Tables and relationships used by the current backend schema</text>
+
+  <rect class="table" x="90" y="180" width="470" height="410"/>
+  <rect class="head" x="90" y="180" width="470" height="62" rx="18" ry="18"/>
+  <text x="125" y="220" class="label">users</text>
+  <rect x="355" y="196" width="170" height="28" rx="14" ry="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="440" y="216" text-anchor="middle" class="small">Parent table</text>
+  <text x="125" y="275" class="key">id</text>
+  <text x="195" y="275" class="field">Primary Key (text)</text>
+  <text x="125" y="308" class="field">surname</text>
+  <text x="125" y="341" class="field">firstname</text>
+  <text x="125" y="374" class="field">username</text>
+  <text x="125" y="407" class="field">role</text>
+  <text x="125" y="440" class="field">admission_no</text>
+  <text x="125" y="473" class="field">image</text>
+  <text x="125" y="506" class="field">password_hash jsonb</text>
+  <text x="125" y="539" class="field">created_at / updated_at</text>
+
+  <rect class="table" x="650" y="150" width="500" height="470"/>
+  <rect class="head" x="650" y="150" width="500" height="62" rx="18" ry="18"/>
+  <text x="685" y="190" class="label">stations</text>
+  <rect x="965" y="166" width="165" height="28" rx="14" ry="14" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+  <text x="1047" y="186" text-anchor="middle" class="small">Parent table</text>
+  <text x="685" y="245" class="key">id</text>
+  <text x="755" y="245" class="field">Primary Key (text)</text>
+  <text x="685" y="278" class="field">name</text>
+  <text x="685" y="311" class="field">description</text>
+  <text x="685" y="344" class="field">procedure_items jsonb</text>
+  <text x="685" y="377" class="field">questions jsonb</text>
+  <text x="685" y="410" class="field">question_timer jsonb</text>
+  <text x="685" y="443" class="field">procedure_timer jsonb</text>
+  <text x="685" y="476" class="field">created_at / updated_at</text>
+  <text x="685" y="520" class="note">Station content is embedded in JSONB columns.</text>
+
+  <rect class="table" x="1220" y="185" width="490" height="520"/>
+  <rect class="head" x="1220" y="185" width="490" height="62" rx="18" ry="18"/>
+  <text x="1255" y="225" class="label">results</text>
+  <rect x="1545" y="201" width="145" height="28" rx="14" ry="14" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="1617" y="221" text-anchor="middle" class="small">Child table</text>
+  <text x="1255" y="280" class="key">id</text>
+  <text x="1325" y="280" class="field">Primary Key (text)</text>
+  <text x="1255" y="313" class="field">student_id - Foreign Key to users.id</text>
+  <text x="1255" y="346" class="field">station_id - Foreign Key to stations.id</text>
+  <text x="1255" y="379" class="field">procedure_results jsonb</text>
+  <text x="1255" y="412" class="field">question_results jsonb</text>
+  <text x="1255" y="445" class="field">procedure_total numeric</text>
+  <text x="1255" y="478" class="field">question_total numeric</text>
+  <text x="1255" y="511" class="field">procedure_percentage numeric</text>
+  <text x="1255" y="544" class="field">question_percentage numeric</text>
+  <text x="1255" y="577" class="field">status jsonb</text>
+  <text x="1255" y="610" class="field">student_answers jsonb</text>
+  <text x="1255" y="643" class="field">current_question_index integer</text>
+  <text x="1255" y="676" class="field">time_remaining / procedure_time_remaining</text>
+  <text x="1255" y="709" class="field">procedure_scores jsonb</text>
+
+  <line class="line" x1="560" y1="385" x2="650" y2="385"/>
+  <line class="line" x1="1150" y1="385" x2="1220" y2="385"/>
+
+  <rect x="160" y="730" width="1480" height="300" rx="20" ry="20" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="200" y="780" class="card-title">Relationship notes</text>
+  <text x="200" y="825" class="note">1. `users` and `stations` are the parent tables.</text>
+  <text x="200" y="860" class="note">2. `results` is the child table because each row depends on one user and one station.</text>
+  <text x="200" y="895" class="note">3. `id` is the primary key in all three tables.</text>
+  <text x="200" y="930" class="note">4. `student_id` and `station_id` are foreign keys in `results`.</text>
+  <text x="200" y="965" class="note">5. Questions and procedure items are not separate tables in the current schema; they are stored as JSONB inside `stations`.</text>
+</svg>

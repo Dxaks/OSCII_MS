@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1200" viewBox="0 0 1800 1200" role="img" aria-labelledby="title desc">
+  <title id="title">OSCII_MS Database Design</title>
+  <desc id="desc">Entity relationship diagram for users, stations, and results tables.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .table { fill: #ffffff; stroke: #2563eb; stroke-width: 2.4; rx: 18; ry: 18; }
+      .head { fill: #dbeafe; stroke: none; }
+      .title { fill: #0f172a; font: 700 28px Arial, sans-serif; }
+      .label { fill: #0f172a; font: 700 22px Arial, sans-serif; }
+      .field { fill: #334155; font: 400 17px Arial, sans-serif; }
+      .key { fill: #1d4ed8; font: 700 17px Arial, sans-serif; }
+      .line { stroke: #334155; stroke-width: 4; fill: none; marker-end: url(#arrow); }
+      .card-title { fill: #0f172a; font: 700 20px Arial, sans-serif; }
+      .note { fill: #475569; font: 400 16px Arial, sans-serif; }
+    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1800" height="1200"/>
+  <text x="80" y="70" class="title">OSCII_MS Database Design</text>
+  <text x="80" y="102" class="note">PostgreSQL schema used by the backend store layer</text>
+
+  <rect class="table" x="90" y="170" width="470" height="420"/>
+  <rect class="head" x="90" y="170" width="470" height="62" rx="18" ry="18"/>
+  <text x="125" y="210" class="label">users</text>
+  <text x="125" y="268" class="key">id</text>
+  <text x="195" y="268" class="field">PK, text</text>
+  <text x="125" y="302" class="field">surname</text>
+  <text x="125" y="336" class="field">firstname</text>
+  <text x="125" y="370" class="field">username</text>
+  <text x="125" y="404" class="field">role</text>
+  <text x="125" y="438" class="field">admission_no</text>
+  <text x="125" y="472" class="field">image</text>
+  <text x="125" y="506" class="field">password_hash jsonb</text>
+  <text x="125" y="540" class="field">created_at / updated_at</text>
+
+  <rect class="table" x="650" y="150" width="500" height="470"/>
+  <rect class="head" x="650" y="150" width="500" height="62" rx="18" ry="18"/>
+  <text x="685" y="190" class="label">stations</text>
+  <text x="685" y="248" class="key">id</text>
+  <text x="755" y="248" class="field">PK, text</text>
+  <text x="685" y="282" class="field">name</text>
+  <text x="685" y="316" class="field">description</text>
+  <text x="685" y="350" class="field">procedure_items jsonb</text>
+  <text x="685" y="384" class="field">questions jsonb</text>
+  <text x="685" y="418" class="field">question_timer jsonb</text>
+  <text x="685" y="452" class="field">procedure_timer jsonb</text>
+  <text x="685" y="486" class="field">created_at / updated_at</text>
+  <text x="685" y="530" class="note">Embedded station content is stored as JSONB arrays/objects.</text>
+
+  <rect class="table" x="1220" y="170" width="490" height="530"/>
+  <rect class="head" x="1220" y="170" width="490" height="62" rx="18" ry="18"/>
+  <text x="1255" y="210" class="label">results</text>
+  <text x="1255" y="268" class="key">id</text>
+  <text x="1325" y="268" class="field">PK, text</text>
+  <text x="1255" y="302" class="field">student_id FK -> users.id</text>
+  <text x="1255" y="336" class="field">station_id FK -> stations.id</text>
+  <text x="1255" y="370" class="field">procedure_results jsonb</text>
+  <text x="1255" y="404" class="field">question_results jsonb</text>
+  <text x="1255" y="438" class="field">procedure_total numeric</text>
+  <text x="1255" y="472" class="field">question_total numeric</text>
+  <text x="1255" y="506" class="field">procedure_percentage numeric</text>
+  <text x="1255" y="540" class="field">question_percentage numeric</text>
+  <text x="1255" y="574" class="field">status jsonb</text>
+  <text x="1255" y="608" class="field">student_answers jsonb</text>
+  <text x="1255" y="642" class="field">current_question_index integer</text>
+  <text x="1255" y="676" class="field">time_remaining / procedure_time_remaining</text>
+  <text x="1255" y="710" class="field">procedure_scores jsonb</text>
+
+  <line class="line" x1="560" y1="410" x2="650" y2="410"/>
+  <line class="line" x1="1150" y1="410" x2="1220" y2="410"/>
+
+  <rect x="180" y="710" width="1420" height="350" rx="20" ry="20" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="220" y="760" class="card-title">Design notes</text>
+  <text x="220" y="805" class="note">1. `results` enforces one row per student and station pair using a UNIQUE(student_id, station_id) constraint.</text>
+  <text x="220" y="845" class="note">2. Deleting a user or station cascades to related results rows.</text>
+  <text x="220" y="885" class="note">3. The backend normalizes JSONB fields into JavaScript arrays and objects on read.</text>
+  <text x="220" y="925" class="note">4. Passwords are stored as PBKDF2 hash records, not plain text.</text>
+  <text x="220" y="965" class="note">5. Station questions and checklist items remain embedded in the stations table rather than separate child tables.</text>
+</svg>
