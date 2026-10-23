@@ -343,13 +343,11 @@ function renderResultPage(container, user, station, result, type) {
                     </p>
 
                     <p>
-                        <strong>Score:</strong>
-                        ${result.questionTotal}
+
                     </p>
 
                     <p>
-                        <strong>Percentage:</strong>
-                        ${result.questionPercentage.toFixed(1)}%
+
                     </p>
 
                 </div>
@@ -386,7 +384,6 @@ function runQuestionTimer(container, timerElement, station, user, result, type) 
         await withLoadingOverlay("Submitting assessment", async () => {
         
           const finalResult = formulateEachQuestionScore(station, result);
-          console.log("After formulate:", finalResult);
           questionCompleted(result.id);
           await syncResult(result);
           

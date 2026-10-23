@@ -117,23 +117,39 @@ export function resetResults() {
 }
 
 export function addProcedureScore(resultId, procedureId, score) {
+
   const result = ResultManagement.getResult(resultId);
 
   if (!result) return false;
 
-  result.procedureResults.push({ procedureId, score });
+  const existingScore = result.procedureResults.find(
+    (item) => item.procedureId === procedureId,
+  );
+
+  if (existingScore) {
+    existingScore.score = score;
+  } else {
+    result.procedureResults.push({ procedureId, score });
+  }
+
   return true;
 }
+
 
 export function addQuestionScore(resultId, questionId, score) {
   const result = ResultManagement.getResult(resultId);
 
   if (!result) return false;
 
-  result.questionResults.push({
-    questionId,
-    score,
-  });
+  const existingScore = result.questionResults.find(
+    (item) => item.questionId === questionId,
+  );
+
+  if (existingScore) {
+    existingScore.score = score;
+  } else {
+    result.questionResults.push({ questionId, score });
+  }
 
   return true;
 }

@@ -62,7 +62,7 @@ export function renderProcedurePage(
                 <div class="station-details">
 
                     <h2>
-                        ${station.procedureName}
+                        ${station.procedureName}:
                     </h2>
 
                     <h2>
