@@ -41,6 +41,8 @@ export async function ensureDb() {
         id text PRIMARY KEY,
         name text NOT NULL UNIQUE,
         description text NOT NULL DEFAULT '',
+        question_name TEXT NOT NULL DEFAULT '',
+        procedure_name TEXT NOT NULL DEFAULT '',
         procedure_items jsonb NOT NULL DEFAULT '[]'::jsonb,
         questions jsonb NOT NULL DEFAULT '[]'::jsonb,
         question_timer jsonb NOT NULL DEFAULT '{"enabled":false,"duration":0}'::jsonb,
@@ -48,6 +50,12 @@ export async function ensureDb() {
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now()
       );
+    `);
+
+    await client.query(`
+      ALTER TABLE stations
+      ADD COLUMN IF NOT EXISTS question_name text NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS procedure_name text NOT NULL DEFAULT ''
     `);
 
     await client.query(`
@@ -226,18 +234,22 @@ export async function writeDb(db) {
             id,
             name,
             description,
+            question_name,
+            procedure_name,
             procedure_items,
             questions,
             question_timer,
             procedure_timer,
             created_at,
             updated_at
-          ) VALUES ($1,$2,$3,$4::jsonb,$5::jsonb,$6::jsonb,$7::jsonb,$8,$9)
+          ) VALUES ($1,$2,$3,$4,$5,$6::jsonb, $7::jsonb, $8::jsonb, $9::jsonb,$10,$11)
         `,
         [
           station.id || makeId(),
           station.name || "",
           station.description || "",
+          station.questionName || station.question_name || `Question ${station.name}`,
+          station.procedureName || station.procedure_name || `Procedure ${station.name}`,
           JSON.stringify(normalizeCollection(station.procedureItems ?? station.procedure_items)),
           JSON.stringify(normalizeCollection(station.questions)),
           JSON.stringify(station.questionTimer ?? station.question_timer ?? { enabled: false, duration: 0 }),
@@ -337,6 +349,8 @@ function mapStationRow(row) {
     id: row.id,
     name: row.name,
     description: row.description,
+    questionName: row.question_name || `Question ${row.name}`,
+    procedureName: row.procedure_name || `Procedure ${row.name}`,
     procedureItems: parseJson(row.procedure_items, []),
     questions: parseJson(row.questions, []),
     questionTimer: parseJson(row.question_timer, { enabled: false, duration: 0 }),

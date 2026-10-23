@@ -65,6 +65,10 @@ export function renderProcedurePage(
                         ${station.procedureName}
                     </h2>
 
+                    <h2>
+                        ${station.description}
+                    </h2>
+
                 </div>
 
                 <div class="student-info">

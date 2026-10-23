@@ -100,10 +100,10 @@ export async function syncStationsSnapshot(stations) {
   });
 }
 
-export async function createStationRemote(name, description) {
+export async function createStationRemote(name, description, questionName, procedureName) {
   return apiRequest("/stations", {
     method: "POST",
-    body: { name, description },
+    body: { name, description, questionName, procedureName },
   });
 }
 

@@ -182,11 +182,13 @@ router.post("/stations/snapshot", requireAuth, requireRole("admin"), async (req,
 });
 
 router.post("/stations", requireAuth, requireRole("admin"), async (req, res) => {
-  const { name, description = "" } = req.body || {};
+  const { name, description = "", questionName, procedureName } = req.body || {};
 
   if (!name) {
     return res.status(400).json({ message: "name is required" });
   }
+
+  const stationName = name.trim();
 
   const db = await readDb();
   const normalized = normalizeStationName(name);
@@ -199,6 +201,8 @@ router.post("/stations", requireAuth, requireRole("admin"), async (req, res) => 
     id: makeId(),
     name,
     description,
+    questionName: questionName?.trim() || `Question ${stationName}`,
+    procedureName: procedureName?.trim() || `Procedure ${stationName}`,
     procedureItems: [],
     questions: [],
     questionTimer: { enabled: false, duration: 0 },
@@ -232,10 +236,37 @@ router.patch("/stations/:id", requireAuth, requireRole("admin"), async (req, res
     return res.status(404).json({ message: "Station not found" });
   }
 
-  const { name, description, questionTimer, procedureTimer } = req.body || {};
+  const { name, description, questionName, procedureName, questionTimer, procedureTimer } = req.body || {};
 
-  if (name !== undefined) station.name = name;
+  // if (name !== undefined) station.name = name;
+
+  if (name !== undefined) {
+    if (typeof name !== "string" || !name.trim()) {
+      return res.status(400).json({
+        message: "Station name cannot be empty",
+      });
+    }
+
+    const normalized = normalizeStationName(name.trim());
+
+    const duplicate = db.stations.some(
+      (candidate) =>
+        candidate.id !== station.id &&
+        normalizeStationName(candidate.name) === normalized
+    );
+
+    if (duplicate) {
+      return res.status(409).json({
+        message: "station already exists",
+      });
+    }
+
+    station.name = name.trim();
+  }
+
   if (description !== undefined) station.description = description;
+  if (questionName !== undefined) station.questionName = questionName;
+  if (procedureName !== undefined) station.procedureName = procedureName;
   if (questionTimer !== undefined) station.questionTimer = questionTimer;
   if (procedureTimer !== undefined) station.procedureTimer = procedureTimer;
 

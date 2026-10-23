@@ -102,7 +102,7 @@ export function renderLoginPage(container, stationId, type) {
       ? "Admin Login"
       : type === "procedure"
         ? `${station?.procedureName || ""}`
-        : `Question ${station?.questionName || ""}`;
+        : `${station?.questionName || ""}`;
 
   container.innerHTML = `
 
@@ -147,19 +147,31 @@ export function renderLoginPage(container, stationId, type) {
             class="login-form"
             >
 
-                <input
-                type="text"
-                name="username"
-                placeholder="Username"
-                required
-                >
+                ${type === "question" ? `
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Admission Number"
+                    autocomplete="username"
+                    required
+                  >
+                ` : `
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Username"
+                    autocomplete="username"
+                    required
+                  >
 
-                <input
-                type="password"
-                name="password"
-                placeholder="Password"
-                required
-                >
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    autocomplete="current-password"
+                    required
+                  >
+                `}
 
                 <button
                 type="submit"
@@ -199,8 +211,11 @@ function setupLoginEvents(container, stationId, type) {
 
     const formData = new FormData(e.target);
 
-    const username = formData.get("username");
-    const password = formData.get("password");
+    // const username = formData.get("username");
+    // const password = formData.get("password");
+
+    const username = formData.get("username")?.trim();
+    const password = type === "question" ? username : formData.get("password");
 
     const station = getStationById(stationId);
 

@@ -461,6 +461,17 @@ body {
   transition: background 0.2s ease;
 }
 
+.edit-station-btn {
+  border: none;
+  background: #2563eb;
+  color: white;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
 .station-card-edit-btn {
   display: flex;
   align-items: center;
@@ -1695,3 +1706,99 @@ dialog::backdrop {
   background: rgba(80, 179, 244, 0.25);
   transform: translateY(-2px);
 }
+
+
+/* Submission Monitor */
+
+.submission-monitor {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.submission-monitor h2 {
+  margin-bottom: 8px;
+}
+
+.submission-monitor > p {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.submission-monitor .table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.submission-monitor .submission-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 14px;
+}
+
+.submission-monitor .submission-table th,
+.submission-monitor .submission-table td {
+  padding: 14px 16px;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.submission-monitor .submission-table th {
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.submission-monitor .submission-table th:first-child {
+  border-top-left-radius: 9px;
+}
+
+.submission-monitor .submission-table th:last-child {
+  border-top-right-radius: 9px;
+}
+
+.submission-monitor .submission-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.submission-monitor .submission-table tbody tr:hover {
+  background: #f0fdfa;
+}
+
+.submission-monitor .submission-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Center S/N and assessment status marks */
+/* .submission-monitor .submission-table th:first-child,
+.submission-monitor .submission-table td:first-child,
+.submission-monitor .submission-table td:nth-child(n + 5) {
+} */
+
+/* Completion symbols */
+.submission-monitor .status-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.submission-monitor .status-mark.completed {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.submission-monitor .status-mark.incomplete {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+

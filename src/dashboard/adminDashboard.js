@@ -44,6 +44,7 @@ import {
   createStationRemote,
   createQuestionRemote,
   createProcedureItemRemote,
+  updateStationRemote
 } from "../app/backendApi.js";
 
 export function renderAdminDashboard(container) {
@@ -72,6 +73,10 @@ export function renderAdminDashboard(container) {
 
         <button class="dashboard-card" data-admin-action="add-user">
           Add User
+        </button>
+
+        <button class="dashboard-card" data-admin-action="submission-monitor">
+          Submission Monitor
         </button>
       </div>
 
@@ -117,6 +122,11 @@ function setupAdminEvents() {
     if (page === "add-user") {
       showAddUserModal();
     }
+
+  if (page === "submission-monitor") {
+      renderSubmissionMonitor(adminContent);
+    }
+
   });
 }
 
@@ -211,37 +221,86 @@ function openModal(title, formHtml) {
 }
 
 // create station modal
+// function showCreateStationModal() {
+//   openModal(
+//     "Create Station",
+//     `
+//     <form id="create-station-form" class="dashboard-form">
+//       <div class="form-group">
+//         <label>Station Name</label>
+//         <input 
+//           type="text" 
+//           name="stationName" 
+//           placeholder="e.g. Hand Washing Procedure" 
+//           required
+//         />
+//         <label>Station Description</label>
+//         <input 
+//           type="text-area" 
+//           name="stationDescription"
+//           required
+//         />
+//       </div>
+
+//       <button class="form-submit-btn" type="submit">
+//         Save Station
+//       </button>
+//     </form>
+//   `,
+//   );
+
+//   const form = document.querySelector("#create-station-form");
+//   form.addEventListener("submit", handleCreateStation);
+// }
+
+
 function showCreateStationModal() {
   openModal(
     "Create Station",
     `
-    <form id="create-station-form" class="dashboard-form">
-      <div class="form-group">
-        <label>Station Name</label>
-        <input 
-          type="text" 
-          name="stationName" 
-          placeholder="e.g. Hand Washing Procedure" 
-          required
-        />
-        <label>Station Description</label>
-        <input 
-          type="text-area" 
-          name="stationDescription"
-          required
-        />
-      </div>
+      <form id="create-station-form" class="dashboard-form">
+        <div class="form-group">
+          <label>Station Name</label>
+          <input
+            type="text"
+            name="stationName"
+            placeholder="e.g. Cardiovascular Examination"
+            required
+          />
 
-      <button class="form-submit-btn" type="submit">
-        Save Station
-      </button>
-    </form>
-  `,
+          <label>Station Description</label>
+          <textarea
+            name="stationDescription"
+            placeholder="Describe the station"
+            required
+          ></textarea>
+
+          <label>Question Assessment Name</label>
+          <input
+            type="text"
+            name="questionName"
+            placeholder="e.g. Cardiology Viva"
+          />
+
+          <label>Procedure Assessment Name</label>
+          <input
+            type="text"
+            name="procedureName"
+            placeholder="e.g. Heart Examination Procedure"
+          />
+        </div>
+
+        <button class="form-submit-btn" type="submit">
+          Save Station
+        </button>
+      </form>
+    `,
   );
 
   const form = document.querySelector("#create-station-form");
   form.addEventListener("submit", handleCreateStation);
 }
+
 
 // add user modal
 function showAddUserModal(user = null) {
@@ -314,17 +373,25 @@ function showAddUserModal(user = null) {
   form.addEventListener("submit", (e) => handleAddUser(e, user));
 }
 
+
 async function handleCreateStation(e) {
   e.preventDefault();
 
   const formData = new FormData(e.target);
 
-  const stationName = formData.get("stationName");
-  const stationDescription = formData.get("stationDescription");
+  const stationName = formData.get("stationName").trim();
+  const stationDescription = formData.get("stationDescription").trim();
+  const questionName = formData.get("questionName").trim();
+  const procedureName = formData.get("procedureName").trim();
 
   await withLoadingOverlay("Creating station", async () => {
+    const response = await createStationRemote(
+      stationName,
+      stationDescription,
+      questionName,
+      procedureName,
+    );
 
-    const response = await createStationRemote(stationName, stationDescription);
     const stationData = response.station;
 
     const station = createStation(
@@ -335,15 +402,133 @@ async function handleCreateStation(e) {
     );
 
     Object.assign(station, stationData);
-    // saveStationToLocalStorage();
 
     const adminContent = document.querySelector("#admin-content");
     renderViewStations(adminContent);
+
     document.querySelector(".modal-overlay").remove();
   }).catch((error) => {
     notyf.error(error.message || "Failed to create station");
   });
 }
+
+
+// async function handleCreateStation(e) {
+//   e.preventDefault();
+
+//   const formData = new FormData(e.target);
+
+//   const stationName = formData.get("stationName");
+//   const stationDescription = formData.get("stationDescription");
+
+//   await withLoadingOverlay("Creating station", async () => {
+
+//     const response = await createStationRemote(stationName, stationDescription);
+//     const stationData = response.station;
+
+//     const station = createStation(
+//       stationData.name,
+//       stationData.description,
+//       stationData.id,
+//       false,
+//     );
+
+//     Object.assign(station, stationData);
+//     // saveStationToLocalStorage();
+
+//     const adminContent = document.querySelector("#admin-content");
+//     renderViewStations(adminContent);
+//     document.querySelector(".modal-overlay").remove();
+//   }).catch((error) => {
+//     notyf.error(error.message || "Failed to create station");
+//   });
+// }
+
+
+function showEditStationModal(station, container) {
+  openModal(
+    "Edit Station Details",
+    `
+      <form id="edit-station-form" class="dashboard-form">
+        <div class="form-group">
+          <label for="edit-station-name">Station Name</label>
+          <input
+            id="edit-station-name"
+            type="text"
+            name="stationName"
+            value="${station.name}"
+            required
+          />
+
+          <label for="edit-question-name">Question Assessment Name</label>
+          <input
+            id="edit-question-name"
+            type="text"
+            name="questionName"
+            value="${station.questionName || ""}"
+            required
+          />
+
+          <label for="edit-procedure-name">Procedure Assessment Name</label>
+          <input
+            id="edit-procedure-name"
+            type="text"
+            name="procedureName"
+            value="${station.procedureName || ""}"
+            required
+          />
+        </div>
+
+        <button class="form-submit-btn" type="submit">
+          Save Changes
+        </button>
+      </form>
+    `,
+  );
+
+  const form = document.querySelector("#edit-station-form");
+
+  form.addEventListener("submit", (event) => {
+    handleEditStation(event, station, container);
+  });
+}
+
+
+async function handleEditStation(event, station, container) {
+  event.preventDefault();
+
+  const formData = new FormData(event.target);
+
+  const name = formData.get("stationName").trim();
+  const questionName = formData.get("questionName").trim();
+  const procedureName = formData.get("procedureName").trim();
+
+  if (!name || !questionName || !procedureName) {
+    notyf.error("All station names are required");
+    return;
+  }
+
+  await withLoadingOverlay("Updating station details", async () => {
+    await updateStationRemote(station.id, {
+      name,
+      questionName,
+      procedureName,
+    });
+
+    // Update the local station object.
+    station.name = name;
+    station.questionName = questionName;
+    station.procedureName = procedureName;
+
+    document.querySelector(".modal-overlay").remove();
+
+    renderStationPage(container, station.id);
+
+  }).catch((error) => {
+    notyf.error(error.message || "Failed to update station details");
+  });
+}
+
 
 function renderStationPage(container, stationId) {
   const station = getStationById(stationId);
@@ -376,10 +561,18 @@ function renderStationPage(container, stationId) {
 
   // station title
   const heading = document.createElement("h2");
-
   heading.textContent = station.name;
-
   section.appendChild(heading);
+
+  const editStation = document.createElement("button");
+  editStation.type = "button";
+  editStation.className = "edit-station-btn";
+  editStation.textContent = "Edit Station Details";
+  section.appendChild(editStation);
+
+  editStation.addEventListener("click", () => {
+  showEditStationModal(station, container);
+});
 
   // procedure box
   const procedureBox = document.createElement("div");
@@ -1343,6 +1536,105 @@ function displayResult(station, element) {
     `;
     }
   });
+}
+
+
+export function renderSubmissionMonitor(container) {
+
+  const stations = Object.values(getAllStations());
+
+  // Collect all existing results from every station.
+  const allResults = [];
+
+    stations.forEach((station) => {
+      const results = getStationResults(station.id);
+
+      results.forEach((result) => {
+        allResults.push({
+          ...result,
+          stationId: station.id,
+        });
+      });
+    });
+
+  // Get unique students who already have a result.
+  const students = [
+    ...new Set(allResults.map((result) => result.studentId)),
+  ]
+    .map((studentId) => getUserById(studentId))
+    .filter(Boolean);
+
+  container.innerHTML = `
+    <section class="submission-monitor">
+      <h2>Submission Monitor</h2>
+      <p>Monitor student question and procedure assessments across stations.</p>
+
+      <div class="table-wrapper">
+        <table class="submission-table">
+          <thead>
+            <tr>
+              <th>S/N</th>
+              <th>Admission Number</th>
+              ${stations
+                .map(
+                  (station) => `
+                    <th>${station.questionName.at(0)}-${station.questionName.at(-1)}</th>
+                    <th>${station.procedureName.at(0)}-${station.procedureName.at(-1)}</th>
+                  `,
+                )
+                .join("")}
+            </tr>
+          </thead>
+
+          <tbody>
+            ${students
+              .map((student, index) => {
+                const studentResults = allResults.filter(
+                  (result) => result.studentId === student.id,
+                );
+
+                return `
+                  <tr>
+                    <td>${index + 1}</td>
+                    <td>${student.admissionNo}</td>
+
+                    ${stations
+                      .map((station) => {
+                        const result = studentResults.find(
+                          (item) => item.stationId === station.id,
+                        );
+
+                        const questionStatus = result?.status?.question;
+                        const procedureStatus = result?.status?.procedure;
+
+                        return `
+                        <td>
+                          <span class="status-mark ${
+                            questionStatus === "completed" ? "completed" : "incomplete"
+                          }">
+                            ${questionStatus === "completed" ? "✓" : "✗"}
+                          </span>
+                        </td>  
+
+                        <td>
+                          <span class="status-mark ${
+                            procedureStatus === "completed" ? "completed" : "incomplete"
+                          }">
+                            ${procedureStatus === "completed" ? "✓" : "✗"}
+                          </span>
+                        </td>
+                        `;
+                      })
+                      .join("")}
+                  </tr>
+                `;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
 }
 
 function showStationDeleteDialog(container, article, station) {

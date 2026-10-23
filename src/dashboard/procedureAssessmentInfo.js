@@ -34,6 +34,10 @@ export function renderProcedureInfo(container, station, moderator, type) {
                 <h1>${station.procedureName}</h1>
 
                 <p>
+                   Procedure Description: ${station.description}
+                </p>
+
+                <p>
                     Procedure Items:
                     ${station.procedureItems.length}
                 </p>
