@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { hashPassword, signToken, verifyPassword, verifyToken } from "../lib/auth.js";
 import { toCsv } from "../lib/csv.js";
-import { makeId, readDb, updateDb } from "../store/db.js";
+import { makeId, readDb, updateDb, updateResultById, createResultIfNotExists } from "../store/db.js";
 
 const router = Router();
 
@@ -27,7 +27,9 @@ router.post("/bootstrap", async (req, res) => {
           });
       }
 
-  await updateDb(() => nextDb);
+  // Bootstrap is the explicit full-snapshot import path. Regular admin
+  // mutations preserve the latest assessment rows during snapshot writes.
+  await updateDb(() => nextDb, { preserveResults: false });
   res.json(nextDb);
 });
 
@@ -484,6 +486,73 @@ router.get("/stations/:id/results", requireAuth, async (req, res) => {
   res.json({ results });
 });
 
+router.get("/results", requireAuth, async (_req, res) => {
+  const db = await readDb();
+  res.json({ results: db.results });
+});
+
+router.get("/results.csv", requireAuth, async (_req, res) => {
+  const db = await readDb();
+  const stations = db.stations;
+  const resultsByStudentStation = new Map(
+    db.results.map((result) => [
+      `${result.studentId}:${result.stationId}`,
+      result,
+    ]),
+  );
+  const submittedStudentIds = new Set(
+    db.results
+      .filter(
+        (result) =>
+          result.status?.question === "completed" ||
+          result.status?.procedure === "completed",
+      )
+      .map((result) => result.studentId),
+  );
+
+  const rows = db.users
+    .filter(
+      (user) =>
+        user.role === "student" && submittedStudentIds.has(user.id),
+    )
+    .map((student) => {
+      const row = {
+        admissionNo: student.admissionNo || "",
+        firstname: student.firstname,
+        surname: student.surname,
+      };
+
+      for (const station of stations) {
+        const result = resultsByStudentStation.get(
+          `${student.id}:${station.id}`,
+        );
+        const prefix = station.name;
+
+        row[`${prefix} - Procedure Score`] = result
+          ? sumScores(result.procedureResults, result.procedureTotal)
+          : "";
+        row[`${prefix} - Procedure Percentage`] = result
+          ? result.procedurePercentage
+          : "";
+        row[`${prefix} - Question Score`] = result
+          ? sumScores(result.questionResults, result.questionTotal)
+          : "";
+        row[`${prefix} - Question Percentage`] = result
+          ? result.questionPercentage
+          : "";
+      }
+
+      return row;
+    });
+
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="oscii-all-stations-results.csv"',
+  );
+  res.send(toCsv(rows));
+});
+
 
 router.get("/stations/:id/results.csv", requireAuth, async (req, res) => {
   const db = await readDb();
@@ -533,80 +602,237 @@ router.get("/stations/:id/results.csv", requireAuth, async (req, res) => {
   res.send(toCsv(rows));
 });
 
+
+// router.post("/results", requireAuth, async (req, res) => {
+//   const {
+//     id,
+//     studentId,
+//     stationId,
+//     procedureResults = [],
+//     questionResults = [],
+//     procedureTotal = 0,
+//     questionTotal = 0,
+//     procedurePercentage = 0,
+//     questionPercentage = 0,
+//     status = { procedure: "in-progress", question: "in-progress" },
+//   } = req.body || {};
+
+//   if (!studentId || !stationId) {
+//     return res.status(400).json({ message: "studentId and stationId are required" });
+//   }
+
+//   const db = await readDb();
+//   const existingResultIndex = db.results.findIndex(
+//     (candidate) =>
+//       candidate.id === id ||
+//       (candidate.studentId === studentId && candidate.stationId === stationId),
+//   );
+//   const result = {
+//     id: id || makeId(),
+//     studentId,
+//     stationId,
+//     procedureResults,
+//     questionResults,
+//     procedureTotal,
+//     questionTotal,
+//     procedurePercentage,
+//     questionPercentage,
+//     status,
+//     studentAnswers: {},
+//     currentQuestionIndex: 0,
+//     timeRemaining: null,
+//     procedureTimeRemaining: null,
+//     procedureScores: {},
+//     createdAt: new Date().toISOString(),
+//     updatedAt: new Date().toISOString(),
+//   };
+
+//   if (existingResultIndex >= 0) {
+//     db.results[existingResultIndex] = {
+//       ...db.results[existingResultIndex],
+//       ...result,
+//       id: db.results[existingResultIndex].id,
+//       createdAt: db.results[existingResultIndex].createdAt,
+//     };
+//   } else {
+//     db.results.push(result);
+//   }
+
+//   await updateDb(() => db);
+
+//   res.status(201).json({ result });
+// });
+
+
+// router.patch("/results/:id", requireAuth, async (req, res) => {
+//   const db = await readDb();
+//   const result = db.results.find((candidate) => candidate.id === req.params.id);
+
+//   if (!result) {
+//     return res.status(404).json({ message: "Result not found" });
+//   }
+
+//   Object.assign(result, req.body || {});
+//   result.updatedAt = new Date().toISOString();
+
+//   await updateDb(() => db);
+//   res.json({ result });
+// });
+
+
+
+// router.post("/results", requireAuth, async (req, res) => {
+//   try {
+//     const {
+//       id,
+//       studentId,
+//       stationId,
+//       procedureResults = [],
+//       questionResults = [],
+//       procedureTotal = 0,
+//       questionTotal = 0,
+//       procedurePercentage = 0,
+//       questionPercentage = 0,
+//       status = {
+//         procedure: "in-progress",
+//         question: "in-progress",
+//       },
+//     } = req.body || {};
+
+//     if (!studentId || !stationId) {
+//       return res.status(400).json({
+//         message: "studentId and stationId are required",
+//       });
+//     }
+
+//     const db = await readDb();
+
+//     const existingResult = db.results.find(
+//       (candidate) =>
+//         candidate.id === id ||
+//         (candidate.studentId === studentId &&
+//           candidate.stationId === stationId),
+//     );
+
+//     if (existingResult) {
+//       return res.status(200).json({
+//         result: existingResult,
+//       });
+//     }
+
+//     const result = {
+//       id: id || makeId(),
+//       studentId,
+//       stationId,
+//       procedureResults,
+//       questionResults,
+//       procedureTotal,
+//       questionTotal,
+//       procedurePercentage,
+//       questionPercentage,
+//       status,
+//       studentAnswers: {},
+//       currentQuestionIndex: 0,
+//       timeRemaining: null,
+//       procedureTimeRemaining: null,
+//       procedureScores: {},
+//       createdAt: new Date().toISOString(),
+//       updatedAt: new Date().toISOString(),
+//     };
+
+//     db.results.push(result);
+
+//     await updateDb(() => db);
+
+//     return res.status(201).json({ result });
+//   } catch (error) {
+//     console.error("Failed to create result:", error);
+
+//     return res.status(500).json({
+//       message: "Failed to create result",
+//     });
+//   }
+// });
+
+
+
 router.post("/results", requireAuth, async (req, res) => {
-  const {
-    id,
-    studentId,
-    stationId,
-    procedureResults = [],
-    questionResults = [],
-    procedureTotal = 0,
-    questionTotal = 0,
-    procedurePercentage = 0,
-    questionPercentage = 0,
-    status = { procedure: "in-progress", question: "in-progress" },
-  } = req.body || {};
+    try {
+        const {
+            id,
+            studentId,
+            stationId,
+            procedureResults = [],
+            questionResults = [],
+            procedureTotal = 0,
+            questionTotal = 0,
+            procedurePercentage = 0,
+            questionPercentage = 0,
+            status = {
+                procedure: "in-progress",
+                question: "in-progress",
+            },
+        } = req.body || {};
 
-  if (!studentId || !stationId) {
-    return res.status(400).json({ message: "studentId and stationId are required" });
-  }
+        if (!studentId || !stationId) {
+            return res.status(400).json({
+                message: "studentId and stationId are required",
+            });
+        }
 
-  const db = await readDb();
-  const existingResultIndex = db.results.findIndex(
-    (candidate) =>
-      candidate.id === id ||
-      (candidate.studentId === studentId && candidate.stationId === stationId),
-  );
-  const result = {
-    id: id || makeId(),
-    studentId,
-    stationId,
-    procedureResults,
-    questionResults,
-    procedureTotal,
-    questionTotal,
-    procedurePercentage,
-    questionPercentage,
-    status,
-    studentAnswers: {},
-    currentQuestionIndex: 0,
-    timeRemaining: null,
-    procedureTimeRemaining: null,
-    procedureScores: {},
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
+        const result = await createResultIfNotExists({
+            id: id || makeId(),
+            studentId,
+            stationId,
+            procedureResults,
+            questionResults,
+            procedureTotal,
+            questionTotal,
+            procedurePercentage,
+            questionPercentage,
+            status,
+            studentAnswers: {},
+            currentQuestionIndex: 0,
+            timeRemaining: null,
+            procedureTimeRemaining: null,
+            procedureScores: {},
+        });
 
-  if (existingResultIndex >= 0) {
-    db.results[existingResultIndex] = {
-      ...db.results[existingResultIndex],
-      ...result,
-      id: db.results[existingResultIndex].id,
-      createdAt: db.results[existingResultIndex].createdAt,
-    };
-  } else {
-    db.results.push(result);
-  }
+        return res.status(200).json({ result });
+    } catch (error) {
+        console.error("Failed to create result:", error);
 
-  await updateDb(() => db);
-
-  res.status(201).json({ result });
+        return res.status(500).json({
+            message: "Failed to create result",
+        });
+    }
 });
+
+
 
 router.patch("/results/:id", requireAuth, async (req, res) => {
-  const db = await readDb();
-  const result = db.results.find((candidate) => candidate.id === req.params.id);
+  try {
+    const result = await updateResultById(
+      req.params.id,
+      req.body || {},
+    );
 
-  if (!result) {
-    return res.status(404).json({ message: "Result not found" });
+    if (!result) {
+      return res.status(404).json({
+        message: "Result not found",
+      });
+    }
+
+    return res.json({ result });
+  } catch (error) {
+    console.error("Failed to update result:", error);
+
+    return res.status(500).json({
+      message: "Failed to save result",
+    });
   }
-
-  Object.assign(result, req.body || {});
-  result.updatedAt = new Date().toISOString();
-
-  await updateDb(() => db);
-  res.json({ result });
 });
+
 
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";

@@ -104,6 +104,80 @@ export function createResult(studentId, stationId, resultId, saveToLocal = true)
   return result;
 }
 
+
+
+// export async function createResultAndWait(studentId, stationId, resultId) {
+//   const result = new Result(studentId, stationId, resultId);
+
+//   // Save the result locally first.
+//   ResultManagement.saveResult(result);
+
+//   // Wait until the backend confirms result creation.
+//   await createResultRemote({
+//     id: result.id,
+//     studentId: result.studentId,
+//     stationId: result.stationId,
+//     procedureResults: result.procedureResults,
+//     questionResults: result.questionResults,
+//     procedureTotal: result.procedureTotal,
+//     questionTotal: result.questionTotal,
+//     procedurePercentage: result.procedurePercentage,
+//     questionPercentage: result.questionPercentage,
+//     status: result.status,
+//   });
+
+//   // Return the result only after the backend request succeeds.
+//   return result;
+// }
+
+
+export async function createResultAndWait(studentId, stationId, resultId) {
+  const result = new Result(studentId, stationId, resultId);
+
+  // Ask the backend to create the result or return an existing one.
+  const response = await createResultRemote({
+    id: result.id,
+    studentId: result.studentId,
+    stationId: result.stationId,
+    procedureResults: result.procedureResults,
+    questionResults: result.questionResults,
+    procedureTotal: result.procedureTotal,
+    questionTotal: result.questionTotal,
+    procedurePercentage: result.procedurePercentage,
+    questionPercentage: result.questionPercentage,
+    status: result.status,
+  });
+
+  if (!response?.result) {
+    throw new Error("The backend did not return a valid assessment result.");
+  }
+
+  // Use the backend's result, including any previously saved progress.
+  const savedResult = response.result;
+
+  // Reuse an existing local instance if one is already present.
+  const localResult = ResultManagement.getResult(savedResult.id);
+
+  if (localResult) {
+    Object.assign(localResult, savedResult);
+    return localResult;
+  }
+
+  // Otherwise, create a local instance using the backend's ID and data.
+  const restoredResult = new Result(
+    savedResult.studentId,
+    savedResult.stationId,
+    savedResult.id,
+  );
+
+  Object.assign(restoredResult, savedResult);
+  ResultManagement.saveResult(restoredResult);
+
+  return restoredResult;
+}
+
+
+
 export function getResult(resultId) {
   return ResultManagement.getResult(resultId);
 }

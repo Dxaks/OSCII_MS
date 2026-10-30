@@ -78,6 +78,10 @@ export function renderAdminDashboard(container) {
         <button class="dashboard-card" data-admin-action="submission-monitor">
           Submission Monitor
         </button>
+
+        <button class="dashboard-card" data-admin-action="combined-results">
+          Combined Station Results
+        </button>
       </div>
 
       <div id="admin-content">
@@ -125,6 +129,10 @@ function setupAdminEvents() {
 
   if (page === "submission-monitor") {
       renderSubmissionMonitor(adminContent);
+    }
+
+    if (page === "combined-results") {
+      renderCombinedResults(adminContent);
     }
 
   });
@@ -875,6 +883,7 @@ questionList.addEventListener(
   `;
 
   displayResult(station, resultSection.querySelector("tbody"));
+  refreshStationResultTable(station, resultSection.querySelector("tbody"));
 
   section.appendChild(resultSection);
 
@@ -896,9 +905,13 @@ questionList.addEventListener(
     arrow.textContent = isHidden ? "▲" : "▼";
   });
 
-  refreshBtn.addEventListener("click", () => {
-    tbody.innerHTML = "";
-    displayResult(station, tbody);
+  refreshBtn.addEventListener("click", async () => {
+    refreshBtn.disabled = true;
+    try {
+      await refreshStationResultTable(station, tbody);
+    } finally {
+      refreshBtn.disabled = false;
+    }
   });
 
   downloadBtn.addEventListener("click", async () => {
@@ -1513,11 +1526,42 @@ function renderUsers(container) {
   });
 }
 
-function displayResult(station, element) {
-  // Render the station-wide results table from the persisted result store.
-  const result = getStationResults(station.id);
+async function refreshStationResultTable(station, element) {
+  try {
+    // The local store is only a startup snapshot and can be stale while
+    // students rotate between computers. Read the station rows from PostgreSQL.
+    const { results = [] } = await apiRequest(
+      `/stations/${station.id}/results`,
+      { method: "GET" },
+    );
+    displayResult(station, element, results);
+  } catch (error) {
+    notyf.error(error.message || "Failed to refresh station results");
+  }
+}
 
-  result.forEach((studentResult) => {
+async function downloadAllStationResults() {
+  try {
+    const csv = await apiRequest("/results.csv", { method: "GET" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "oscii-all-stations-results.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    notyf.success("Combined station results downloaded");
+  } catch (error) {
+    notyf.error(error.message || "Failed to download combined results");
+  }
+}
+
+function displayResult(station, element, results = getStationResults(station.id)) {
+  element.innerHTML = "";
+
+  results.forEach((studentResult) => {
     const student = getUserById(studentResult.studentId);
 
     if (student) {
@@ -1527,10 +1571,10 @@ function displayResult(station, element) {
         <td>${student.firstname} </td>
         <td>${student.surname} </td>
         <td>${student.admissionNo} </td>
-        <td>${studentResult.procedureTotal.toFixed(2)}</td>
-        <td>${studentResult.procedurePercentage.toFixed(2)}</td>
-        <td>${studentResult.questionTotal.toFixed(2)}</td>
-        <td>${studentResult.questionPercentage.toFixed(2)}</td>
+        <td>${Number(studentResult.procedureTotal || 0).toFixed(2)}</td>
+        <td>${Number(studentResult.procedurePercentage || 0).toFixed(2)}</td>
+        <td>${Number(studentResult.questionTotal || 0).toFixed(2)}</td>
+        <td>${Number(studentResult.questionPercentage || 0).toFixed(2)}</td>
       
       </tr>
     `;
@@ -1538,36 +1582,154 @@ function displayResult(station, element) {
   });
 }
 
-
-export function renderSubmissionMonitor(container) {
-
+function renderCombinedResults(container) {
   const stations = Object.values(getAllStations());
 
-  // Collect all existing results from every station.
-  const allResults = [];
+  container.innerHTML = `
+    <section class="submission-monitor combined-results">
+      <div class="submission-monitor-header">
+        <div>
+          <h2>Combined Station Results</h2>
+          <p>View every student’s result across all stations in one table.</p>
+        </div>
+        <div>
+          <button class="refresh-combined-results-btn" type="button">Refresh</button>
+          <button class="download-combined-results-btn" type="button">Download CSV</button>
+        </div>
+      </div>
+      <p class="combined-results-state" role="status">Loading latest results…</p>
+      <div class="table-wrapper">
+        <table class="combined-results-table"></table>
+      </div>
+    </section>
+  `;
 
-    stations.forEach((station) => {
-      const results = getStationResults(station.id);
+  const state = container.querySelector(".combined-results-state");
+  const table = container.querySelector(".combined-results-table");
+  const refreshButton = container.querySelector(".refresh-combined-results-btn");
 
-      results.forEach((result) => {
-        allResults.push({
-          ...result,
-          stationId: station.id,
-        });
+  const refresh = async () => {
+    refreshButton.disabled = true;
+    state.textContent = "Loading latest results…";
+
+    try {
+      const { results = [] } = await apiRequest("/results", {
+        method: "GET",
       });
-    });
+      renderCombinedResultTable(table, stations, results);
+      state.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    } catch (error) {
+      state.textContent = "Could not load the latest results.";
+      notyf.error(error.message || "Failed to refresh combined results");
+    } finally {
+      refreshButton.disabled = false;
+    }
+  };
 
-  // Get unique students who already have a result.
-  const students = [
-    ...new Set(allResults.map((result) => result.studentId)),
-  ]
-    .map((studentId) => getUserById(studentId))
-    .filter(Boolean);
+  refreshButton.addEventListener("click", refresh);
+  container
+    .querySelector(".download-combined-results-btn")
+    .addEventListener("click", downloadAllStationResults);
+
+  void refresh();
+}
+
+function renderCombinedResultTable(table, stations, results) {
+  const submittedStudentIds = new Set(
+    results
+      .filter(
+        (result) =>
+          result.status?.question === "completed" ||
+          result.status?.procedure === "completed",
+      )
+      .map((result) => result.studentId),
+  );
+  const students = getAllUsers().filter(
+    (user) => user.role === "student" && submittedStudentIds.has(user.id),
+  );
+  const resultsByStudentAndStation = new Map(
+    results.map((result) => [
+      `${result.studentId}:${result.stationId}`,
+      result,
+    ]),
+  );
+  const thead = document.createElement("thead");
+  const stationHeaderRow = document.createElement("tr");
+  const detailsHeader = document.createElement("th");
+  detailsHeader.colSpan = 3;
+  detailsHeader.rowSpan = 2;
+  detailsHeader.textContent = "Student";
+  stationHeaderRow.appendChild(detailsHeader);
+
+  stations.forEach((station) => {
+    const cell = document.createElement("th");
+    cell.colSpan = 4;
+    cell.textContent = station.name;
+    cell.classList.add("station-group-end");
+    stationHeaderRow.appendChild(cell);
+  });
+
+  const metricHeaderRow = document.createElement("tr");
+  stations.forEach(() => {
+    ["Procedure Score", "Procedure %", "Question Score", "Question %"].forEach(
+      (header, index) => {
+        const cell = document.createElement("th");
+        cell.textContent = header;
+        if (index === 3) {
+          cell.classList.add("station-group-end");
+        }
+        metricHeaderRow.appendChild(cell);
+      },
+    );
+  });
+  thead.append(stationHeaderRow, metricHeaderRow);
+
+  const tbody = document.createElement("tbody");
+  students.forEach((student) => {
+    const row = document.createElement("tr");
+    const values = [student.admissionNo || "", student.firstname, student.surname];
+
+    for (const station of stations) {
+      const result = resultsByStudentAndStation.get(
+        `${student.id}:${station.id}`,
+      );
+
+      values.push(
+        result ? Number(result.procedureTotal || 0).toFixed(2) : "",
+        result ? Number(result.procedurePercentage || 0).toFixed(2) : "",
+        result ? Number(result.questionTotal || 0).toFixed(2) : "",
+        result ? Number(result.questionPercentage || 0).toFixed(2) : "",
+      );
+    }
+
+    values.forEach((value, index) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      if (index >= 3 && (index - 2) % 4 === 0) {
+        cell.classList.add("station-group-end");
+      }
+      row.appendChild(cell);
+    });
+    tbody.appendChild(row);
+  });
+
+  table.replaceChildren(thead, tbody);
+}
+
+
+export function renderSubmissionMonitor(container) {
+  const stations = Object.values(getAllStations());
 
   container.innerHTML = `
     <section class="submission-monitor">
-      <h2>Submission Monitor</h2>
-      <p>Monitor student question and procedure assessments across stations.</p>
+      <div class="submission-monitor-header">
+        <div>
+          <h2>Submission Monitor</h2>
+          <p>Monitor student question and procedure assessments across stations.</p>
+        </div>
+        <button class="refresh-submission-monitor-btn" type="button">Refresh</button>
+      </div>
+      <p class="submission-monitor-state" role="status">Loading latest submissions…</p>
 
       <div class="table-wrapper">
         <table class="submission-table">
@@ -1585,56 +1747,94 @@ export function renderSubmissionMonitor(container) {
                 .join("")}
             </tr>
           </thead>
-
-          <tbody>
-            ${students
-              .map((student, index) => {
-                const studentResults = allResults.filter(
-                  (result) => result.studentId === student.id,
-                );
-
-                return `
-                  <tr>
-                    <td>${index + 1}</td>
-                    <td>${student.admissionNo}</td>
-
-                    ${stations
-                      .map((station) => {
-                        const result = studentResults.find(
-                          (item) => item.stationId === station.id,
-                        );
-
-                        const questionStatus = result?.status?.question;
-                        const procedureStatus = result?.status?.procedure;
-
-                        return `
-                        <td>
-                          <span class="status-mark ${
-                            questionStatus === "completed" ? "completed" : "incomplete"
-                          }">
-                            ${questionStatus === "completed" ? "✓" : "✗"}
-                          </span>
-                        </td>  
-
-                        <td>
-                          <span class="status-mark ${
-                            procedureStatus === "completed" ? "completed" : "incomplete"
-                          }">
-                            ${procedureStatus === "completed" ? "✓" : "✗"}
-                          </span>
-                        </td>
-                        `;
-                      })
-                      .join("")}
-                  </tr>
-                `;
-              })
-              .join("")}
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
     </section>
   `;
+
+  const refreshButton = container.querySelector(
+    ".refresh-submission-monitor-btn",
+  );
+  const state = container.querySelector(".submission-monitor-state");
+  const tbody = container.querySelector(".submission-table tbody");
+
+  const refresh = async () => {
+    refreshButton.disabled = true;
+    state.textContent = "Loading latest submissions…";
+
+    try {
+      const { results = [] } = await apiRequest("/results", {
+        method: "GET",
+      });
+      renderSubmissionMonitorRows(tbody, stations, results);
+      state.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+    } catch (error) {
+      state.textContent = "Could not load the latest submissions.";
+      notyf.error(error.message || "Failed to refresh submission monitor");
+    } finally {
+      refreshButton.disabled = false;
+    }
+  };
+
+  refreshButton.addEventListener("click", refresh);
+  void refresh();
+}
+
+function renderSubmissionMonitorRows(tbody, stations, results) {
+  const submittedStudentIds = new Set(
+    results
+      .filter(
+        (result) =>
+          result.status?.question === "completed" ||
+          result.status?.procedure === "completed",
+      )
+      .map((result) => result.studentId),
+  );
+  const students = getAllUsers().filter(
+    (user) => user.role === "student" && submittedStudentIds.has(user.id),
+  );
+  const resultByStudentAndStation = new Map(
+    results.map((result) => [
+      `${result.studentId}:${result.stationId}`,
+      result,
+    ]),
+  );
+
+  tbody.innerHTML = students
+    .map((student, index) => {
+      const stationCells = stations
+        .map((station) => {
+          const result = resultByStudentAndStation.get(
+            `${student.id}:${station.id}`,
+          );
+          const questionCompleted = result?.status?.question === "completed";
+          const procedureCompleted = result?.status?.procedure === "completed";
+
+          return `
+            <td>
+              <span class="status-mark ${questionCompleted ? "completed" : "incomplete"}">
+                ${questionCompleted ? "✓" : "✗"}
+              </span>
+            </td>
+            <td>
+              <span class="status-mark ${procedureCompleted ? "completed" : "incomplete"}">
+                ${procedureCompleted ? "✓" : "✗"}
+              </span>
+            </td>
+          `;
+        })
+        .join("");
+
+      return `
+        <tr>
+          <td>${index + 1}</td>
+          <td>${student.admissionNo || ""}</td>
+          ${stationCells}
+        </tr>
+      `;
+    })
+    .join("");
 }
 
 function showStationDeleteDialog(container, article, station) {

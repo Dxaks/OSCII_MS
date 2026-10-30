@@ -1,6 +1,6 @@
 import { getStudentByAdmissionNo } from "../app/users.js";
 import { showNoticeDialog, showConfirmDialog } from "../utilities/utility.js";
-import { createResult, getStudentResults } from "../app/result.js";
+import { createResultAndWait } from "../app/result.js";
 import { renderProcedurePage } from "./examinerDashboard.js";
 import { renderLoginPage } from "./loginPage.js";
 import logo from "../asset/icons/account-circle.svg";
@@ -151,28 +151,37 @@ function setupProcedureInfoEvents(container, station, moderator, type) {
                 </div>
             `,
 
-      onConfirm() {
-        const existingResult = getStudentResults(student.id, station.id);
+      async onConfirm() {
+        try {
+          // Reload from PostgreSQL on every entry. Another moderator or browser
+          // may have changed this result since this computer was hydrated.
+          const existingResult = await createResultAndWait(student.id, station.id);
 
-        // Prevent repeat submissions for a completed procedure attempt.
-        if (existingResult && existingResult.status.procedure === "completed") {
+          if (existingResult.status.procedure === "completed") {
+            showNoticeDialog({
+              title: "Assessment Completed",
+              message:
+                "You have already completed the checklist for this student.",
+            });
+            return;
+          }
+
+          renderProcedurePage(
+            container,
+            station,
+            student,
+            moderator,
+            existingResult,
+            type,
+          );
+        } catch (error) {
+          console.error("Failed to prepare procedure assessment:", error);
           showNoticeDialog({
-            title: "Assessment Completed",
+            title: "Unable to Start Assessment",
             message:
-              "You have already completed the checklist for this student.",
+              "The assessment result could not be loaded or saved. Please check your connection and try again.",
           });
-
-          return;
         }
-
-        renderProcedurePage(
-          container,
-          station,
-          student,
-          moderator,
-          existingResult,
-          type,
-        );
       },
     });
   });

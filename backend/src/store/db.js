@@ -10,6 +10,12 @@ const pool = new Pool({
   max: Number(process.env.PGPOOL_MAX || 10),
 });
 
+// Snapshot rewrites must coordinate with result writes across all backend
+// processes. Shared locks let student saves proceed concurrently; the
+// exclusive lock prevents a snapshot rewrite from racing those saves.
+const WRITE_LOCK_NAMESPACE = 19796;
+const WRITE_LOCK_ID = 1;
+
 let schemaReady = false;
 
 export async function ensureDb() {
@@ -163,14 +169,37 @@ function isMissingDatabaseError(error) {
   );
 }
 
-export async function readDb() {
+
+// export async function readDb(queryClient = pool) {
+//   await ensureDb();
+
+//   const [usersResult, stationsResult, resultsResult] = await Promise.all([
+//     queryClient.query("SELECT * FROM users ORDER BY created_at ASC"),
+//     queryClient.query("SELECT * FROM stations ORDER BY created_at ASC"),
+//     queryClient.query("SELECT * FROM results ORDER BY created_at ASC"),
+//   ]);
+
+//   return {
+//     users: usersResult.rows.map(mapUserRow),
+//     stations: stationsResult.rows.map(mapStationRow),
+//     results: resultsResult.rows.map(mapResultRow),
+//   };
+// }
+
+export async function readDb(queryClient = pool) {
   await ensureDb();
 
-  const [usersResult, stationsResult, resultsResult] = await Promise.all([
-    pool.query("SELECT * FROM users ORDER BY created_at ASC"),
-    pool.query("SELECT * FROM stations ORDER BY created_at ASC"),
-    pool.query("SELECT * FROM results ORDER BY created_at ASC"),
-  ]);
+  const usersResult = await queryClient.query(
+    "SELECT * FROM users ORDER BY created_at ASC"
+  );
+
+  const stationsResult = await queryClient.query(
+    "SELECT * FROM stations ORDER BY created_at ASC"
+  );
+
+  const resultsResult = await queryClient.query(
+    "SELECT * FROM results ORDER BY created_at ASC"
+  );
 
   return {
     users: usersResult.rows.map(mapUserRow),
@@ -179,7 +208,9 @@ export async function readDb() {
   };
 }
 
-export async function writeDb(db) {
+
+
+export async function writeDb(db, queryClient = null) {
   await ensureDb();
 
   const users = normalizeCollection(db?.users);
@@ -190,7 +221,8 @@ export async function writeDb(db) {
     stations,
   );
 
-  const client = await pool.connect();
+  const ownsClient = queryClient == null;
+  const client = queryClient || await pool.connect();
 
   try {
     await client.query("BEGIN");
@@ -315,18 +347,77 @@ export async function writeDb(db) {
     await client.query("ROLLBACK");
     throw error;
   } finally {
-    client.release();
+    if (ownsClient) {
+      client.release();
+    }
   }
 }
 
-export async function updateDb(mutator) {
-  const db = await readDb();
-  const nextDb = await mutator(db);
-  return writeDb(nextDb || db);
+export async function updateDb(mutator, { preserveResults = true } = {}) {
+  await ensureDb();
+  const client = await pool.connect();
+  let lockAcquired = false;
+
+  try {
+    await acquireWriteLock(client, false);
+    lockAcquired = true;
+
+    // Read and rewrite while holding the exclusive lock. Result POST/PATCH
+    // operations use the matching shared lock, so no result save can slip
+    // between this read and the TRUNCATE/reinsert transaction.
+    const db = await readDb(client);
+    const nextDb = await mutator(db) || db;
+
+    // Current admin mutations change users/stations, not results. Preserve
+    // result rows read under the lock so callbacks holding an older snapshot
+    // cannot restore stale answers, scores, or statuses.
+    if (preserveResults) {
+      nextDb.results = db.results;
+    }
+
+    return await writeDb(nextDb, client);
+  } finally {
+    if (lockAcquired) {
+      await releaseWriteLock(client, false);
+    } else {
+      client.release();
+    }
+  }
 }
 
 export function makeId() {
   return crypto.randomUUID();
+}
+
+async function acquireWriteLock(client, shared) {
+  const lockFunction = shared ? "pg_advisory_lock_shared" : "pg_advisory_lock";
+  await client.query(`SELECT ${lockFunction}($1, $2)`, [
+    WRITE_LOCK_NAMESPACE,
+    WRITE_LOCK_ID,
+  ]);
+}
+
+async function releaseWriteLock(client, shared) {
+  const unlockFunction = shared
+    ? "pg_advisory_unlock_shared"
+    : "pg_advisory_unlock";
+
+  try {
+    const result = await client.query(
+      `SELECT ${unlockFunction}($1, $2) AS unlocked`,
+      [WRITE_LOCK_NAMESPACE, WRITE_LOCK_ID],
+    );
+
+    if (!result.rows[0]?.unlocked) {
+      throw new Error("PostgreSQL write lock was not held by this connection.");
+    }
+
+    client.release();
+  } catch (error) {
+    // Destroy the connection if its session lock could not be released.
+    client.release(error);
+    throw error;
+  }
 }
 
 function mapUserRow(row) {
@@ -381,6 +472,155 @@ function mapResultRow(row) {
     updatedAt: row.updated_at,
   };
 }
+
+
+export async function updateResultById(resultId, payload) {
+  await ensureDb();
+  const client = await pool.connect();
+  let lockAcquired = false;
+
+  try {
+  await acquireWriteLock(client, true);
+  lockAcquired = true;
+
+  const result = await client.query(
+    `
+      UPDATE results
+      SET
+        procedure_results = COALESCE($1::jsonb, procedure_results),
+        question_results = COALESCE($2::jsonb, question_results),
+        procedure_total = COALESCE($3::numeric, procedure_total),
+        question_total = COALESCE($4::numeric, question_total),
+        procedure_percentage = COALESCE($5::numeric, procedure_percentage),
+        question_percentage = COALESCE($6::numeric, question_percentage),
+        status = COALESCE($7::jsonb, status),
+        student_answers = COALESCE($8::jsonb, student_answers),
+        current_question_index = COALESCE($9::integer, current_question_index),
+        time_remaining = COALESCE($10::integer, time_remaining),
+        procedure_time_remaining = COALESCE($11::integer, procedure_time_remaining),
+        procedure_scores = COALESCE($12::jsonb, procedure_scores),
+        updated_at = NOW()
+      WHERE id = $13
+      RETURNING *
+    `,
+    [
+      payload.procedureResults == null
+        ? null
+        : JSON.stringify(payload.procedureResults),
+
+      payload.questionResults == null
+        ? null
+        : JSON.stringify(payload.questionResults),
+
+      payload.procedureTotal ?? null,
+      payload.questionTotal ?? null,
+      payload.procedurePercentage ?? null,
+      payload.questionPercentage ?? null,
+
+      payload.status == null
+        ? null
+        : JSON.stringify(payload.status),
+
+      payload.studentAnswers == null
+        ? null
+        : JSON.stringify(payload.studentAnswers),
+
+      payload.currentQuestionIndex ?? null,
+      payload.timeRemaining ?? null,
+      payload.procedureTimeRemaining ?? null,
+
+      payload.procedureScores == null
+        ? null
+        : JSON.stringify(payload.procedureScores),
+
+      resultId,
+    ],
+  );
+
+  if (result.rowCount === 0) {
+    return null;
+  }
+
+  return mapResultRow(result.rows[0]);
+  } finally {
+    if (lockAcquired) {
+      await releaseWriteLock(client, true);
+    } else {
+      client.release();
+    }
+  }
+}
+
+
+export async function createResultIfNotExists(result) {
+    await ensureDb();
+    const client = await pool.connect();
+    let lockAcquired = false;
+
+    try {
+    await acquireWriteLock(client, true);
+    lockAcquired = true;
+
+    const queryResult = await client.query(
+        `
+        INSERT INTO results (
+            id,
+            student_id,
+            station_id,
+            procedure_results,
+            question_results,
+            procedure_total,
+            question_total,
+            procedure_percentage,
+            question_percentage,
+            status,
+            student_answers,
+            current_question_index,
+            time_remaining,
+            procedure_time_remaining,
+            procedure_scores,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            $1, $2, $3, $4::jsonb, $5::jsonb,
+            $6, $7, $8, $9, $10::jsonb,
+            $11::jsonb, $12, $13, $14,
+            $15::jsonb, NOW(), NOW()
+        )
+        ON CONFLICT (student_id, station_id)
+        DO UPDATE SET id = results.id
+        RETURNING *
+        `,
+        [
+            result.id,
+            result.studentId,
+            result.stationId,
+            JSON.stringify(result.procedureResults),
+            JSON.stringify(result.questionResults),
+            result.procedureTotal,
+            result.questionTotal,
+            result.procedurePercentage,
+            result.questionPercentage,
+            JSON.stringify(result.status),
+            JSON.stringify(result.studentAnswers),
+            result.currentQuestionIndex,
+            result.timeRemaining,
+            result.procedureTimeRemaining,
+            JSON.stringify(result.procedureScores),
+        ],
+    );
+
+    return mapResultRow(queryResult.rows[0]);
+    } finally {
+      if (lockAcquired) {
+        await releaseWriteLock(client, true);
+      } else {
+        client.release();
+      }
+    }
+}
+
 
 function normalizeCollection(value) {
   if (Array.isArray(value)) {

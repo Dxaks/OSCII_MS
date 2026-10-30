@@ -104,6 +104,10 @@ export function renderLoginPage(container, stationId, type) {
         ? `${station?.procedureName || ""}`
         : `${station?.questionName || ""}`;
 
+  const subtitle = station?.description || "";
+
+  console.log(subtitle === true)
+
   container.innerHTML = `
 
 <div class="login-page">
@@ -121,6 +125,12 @@ export function renderLoginPage(container, stationId, type) {
             ${overlayTitle}
 
             </h1>
+
+            <h2>
+
+               ${subtitle}             
+
+            </h2>
 
             <p>
 

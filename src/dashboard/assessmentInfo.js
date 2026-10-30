@@ -1,9 +1,9 @@
 import { renderQuestionPage } from "./studentDashboard.js";
 import { renderLoginPage } from "./loginPage.js";
 import { showConfirmDialog, showNoticeDialog } from "../utilities/utility.js";
-import { getStudentResults } from "../app/result.js";
 import logo from "../asset/icons/account-circle.svg";
 import { clearAuthToken } from "../app/backendApi.js";
+import { createResultAndWait } from "../app/result.js";
 
 export function renderAssessmentInfo(
   container,
@@ -128,7 +128,34 @@ export function renderAssessmentInfo(
 
   const startBtn = container.querySelector(".start-assessment-btn");
 
-  startBtn.addEventListener("click", () => {
+  // startBtn.addEventListener("click", () => {
+  //   if (!station.questions.length) {
+  //     showNoticeDialog({
+  //       title: "Assessment Unavailable",
+  //       message:
+  //         "There are currently no questions available for this assessment.",
+  //     });
+  //     return;
+  //   }
+
+  //   if (existingResult) {
+  //     // Resume only if the student already has an unfinished question attempt.
+  //     if (existingResult.status.question === "completed") {
+  //       showNoticeDialog({
+  //         title: "Assessment Completed",
+
+  //         message: "You have already completed this station.",
+  //       });
+
+  //       return;
+  //     }
+  //   }
+
+  //   renderQuestionPage(container, station, user, type, existingResult);
+  // });
+
+
+  startBtn.addEventListener("click", async () => {
     if (!station.questions.length) {
       showNoticeDialog({
         title: "Assessment Unavailable",
@@ -138,21 +165,41 @@ export function renderAssessmentInfo(
       return;
     }
 
-    if (existingResult) {
-      // Resume only if the student already has an unfinished question attempt.
-      if (existingResult.status.question === "completed") {
+    // Prevent multiple clicks while creating the result.
+    startBtn.disabled = true;
+    const originalText = startBtn.textContent;
+    startBtn.textContent = "Preparing Assessment...";
+
+    try {
+      // Always ask PostgreSQL for the latest attempt. The browser may have
+      // been left open while another computer saved this student's progress.
+      const result = await createResultAndWait(user.id, station.id);
+
+      if (result.status.question === "completed") {
         showNoticeDialog({
           title: "Assessment Completed",
-
           message: "You have already completed this station.",
         });
-
+        startBtn.disabled = false;
+        startBtn.textContent = originalText;
         return;
       }
-    }
 
-    renderQuestionPage(container, station, user, type, existingResult);
+      renderQuestionPage(container, station, user, type, result);
+    } catch (error) {
+      console.error("Failed to prepare assessment:", error);
+
+      showNoticeDialog({
+        title: "Unable to Start Assessment",
+        message:
+          "Your assessment could not be saved to the server. Please check your connection and try again.",
+      });
+
+      startBtn.disabled = false;
+      startBtn.textContent = originalText;
+    }
   });
+
 
   const logoutBtn = container.querySelector(".logout-btn");
   logoutBtn.addEventListener("click", () => {

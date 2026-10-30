@@ -322,13 +322,17 @@ export function startProcedureTimer(result, station, timerElement, onTimeUp) {
 }
 
 
-export async function syncResult(result) {
-    try {
-        await updateResultRemote(result.id, result);
-    } catch (err) {
-        console.error(err);
-    }
-}
+// export async function syncResult(result) {
+//     try {
+//         await updateResultRemote(result.id, result);
+//     } catch (err) {
+//         console.error(err);
+//     }
+// }
+
+// export async function syncResult(result) {
+//     await updateResultRemote(result.id, result);
+// }
 
 // export function updateResultAtRegularInterval(result) {
 //   // Periodic snapshots reduce the chance of losing in-progress answers on refresh.
@@ -341,7 +345,29 @@ export async function syncResult(result) {
 //   return timerId;
 // }
 
-// prevent creating or updating sation (question / procedure) without timer to avoid returning negetive timer
+
+const resultSaveQueues = new Map();
+
+export function syncResult(result) {
+    const resultId = result.id;
+    const previousSave = resultSaveQueues.get(resultId) ?? Promise.resolve();
+
+    const currentSave = previousSave
+        .catch(() => {
+            // Allow the queue to continue after a previous failure.
+        })
+        .then(() => updateResultRemote(resultId, result));
+
+    resultSaveQueues.set(resultId, currentSave);
+
+    return currentSave.finally(() => {
+        if (resultSaveQueues.get(resultId) === currentSave) {
+            resultSaveQueues.delete(resultId);
+        }
+    });
+}
+
+
 export function checkIfStationHasActiveTimers(questionTimerDuration, procedureTimerDuration) {
 
   if (!questionTimerDuration || !procedureTimerDuration) {

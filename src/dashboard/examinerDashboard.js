@@ -4,7 +4,6 @@ import {
   procedureCompleted,
   showConfirmDialog,
   withLoadingOverlay,
-  updateResult,
   syncResult,
 } from "../utilities/utility.js";
 import { renderLoginPage } from "./loginPage.js";
@@ -99,11 +98,9 @@ export function renderProcedurePage(
             <footer class="procedure-footer">
 
                 <div class="answered-count">
-
-                    Answered:
-                    0 /
-                    ${station.procedureItems.length}
-
+                    ${calculateProcedureMarks(station, result).marksAwarded}
+                    /
+                    ${calculateProcedureMarks(station, result).totalMarks}
                 </div>
 
                  <div class="procedure-timer">
@@ -178,83 +175,234 @@ export function renderProcedurePage(
             renderProcedureInfo(container, station, moderator, type);
           });
         } catch (error) {
-          console.error(error);
+          console.error(error.message);
         }
       },
     });
   });
 }
 
+
+// function renderProcedureItems(container, station, result) {
+//   container.innerHTML = "";
+
+//   station.procedureItems.forEach((item, index) => {
+//     const savedScore = result.procedureScores[item.id];
+
+//     const isCompleted = Object.prototype.hasOwnProperty.call(
+//       result.procedureScores,
+//       item.id,
+//     );
+
+//     const optionsHtml = item.scoreOptions
+//       .map((option) => {
+//         return `
+
+//                     <label>
+
+//                         <input
+//                             type="radio"
+//                             name="${item.id}"
+//                             value="${option}"
+//                             ${savedScore === option ? "checked" : ""}
+//                         >
+
+//                         ${option}
+
+//                     </label>
+
+//                 `;
+//       })
+//       .join("");
+
+//     container.innerHTML += `
+
+//                 <div class="procedure-item ${isCompleted ? "completed" : ""}">
+
+//                     <h3>
+//                         ${index + 1}.
+//                         ${item.description}
+//                     </h3>
+
+//                     <div class="score-options">
+//                         ${optionsHtml}
+//                     </div>
+
+//                 </div>
+//             `;
+//   });
+
+//   setupProcedureEvents(container, result);
+// }
+
+
+// function setupProcedureEvents(container, result) {
+//   const radios = container.querySelectorAll(
+//     ".procedure-item input[type='radio']",
+//   );
+
+//   radios.forEach((radio) => {
+//     radio.addEventListener("change", () => {
+//       const procedureId = radio.name;
+
+//       result.procedureScores[procedureId] = Number(radio.value);
+
+//       const card = radio.closest(".procedure-item");
+//       card.classList.add("completed");
+
+//       syncResult(result);
+//     });
+//   });
+// }
+
+
+
+function calculateProcedureMarks(station, result) {
+    let totalMarks = 0;
+    let marksAwarded = 0;
+
+    station.procedureItems.forEach((item) => {
+        const isSubheading =
+            item.scoreOptions.length === 2 &&
+            item.scoreOptions.every(option => Number(option) === 0);
+
+        if (isSubheading) return;
+
+        totalMarks += Number(item.scoreOptions[1]);
+
+        if (Object.prototype.hasOwnProperty.call(result.procedureScores, item.id)) {
+            marksAwarded += Number(result.procedureScores[item.id]);
+        }
+    });
+
+    return { marksAwarded, totalMarks };
+}
+
+
+
 function renderProcedureItems(container, station, result) {
-  container.innerHTML = "";
+    container.innerHTML = "";
 
-  station.procedureItems.forEach((item, index) => {
-    const savedScore = result.procedureScores[item.id];
+    let itemNumber = 0;
 
-    const isCompleted = Object.prototype.hasOwnProperty.call(
-      result.procedureScores,
-      item.id,
+    station.procedureItems.forEach((item, index) => {
+
+        const isSubheading =
+            item.scoreOptions.length === 2 &&
+            item.scoreOptions.every(option => Number(option) === 0);
+
+        if (!isSubheading) {
+          itemNumber++;
+        }
+
+        const savedScore = result.procedureScores[item.id];
+
+        const isCompleted = Object.prototype.hasOwnProperty.call(
+            result.procedureScores,
+            item.id,
+        );
+
+        const optionsHtml = isSubheading
+            ? ""
+            : item.scoreOptions
+                .map((option) => {
+                    return `
+                        <label>
+                            <input
+                                type="radio"
+                                name="${item.id}"
+                                value="${option}"
+                                ${Number(savedScore) === Number(option) && isCompleted ? "checked" : ""}
+                            >
+                            ${option}
+                        </label>
+                    `;
+                })
+                .join("");
+
+        container.innerHTML += `
+            <div class="procedure-item ${isCompleted ? "completed" : ""} ${isSubheading ? "subheading" : ""}">
+
+                <h3 class="${isSubheading ? "subheading-description" : ""}">
+                    ${isSubheading ? "" : `${itemNumber}. `}
+                    ${item.description}
+                </h3>
+
+                <div class="score-options">
+                    ${optionsHtml}
+                </div>
+            </div>
+        `;
+    });
+
+  setupProcedureEvents(
+    container,
+    station,
+    result,
+    document.querySelector(".answered-count")
+  );
+}
+
+
+function setupProcedureEvents(container, station, result, scoreDisplay) {
+    const radios = container.querySelectorAll(
+        ".procedure-item input[type='radio']"
     );
 
-    const optionsHtml = item.scoreOptions
-      .map((option) => {
-        return `
+    radios.forEach((radio) => {
+        radio.addEventListener("change", async () => {
+            const procedureId = radio.name;
 
-                    <label>
+            result.procedureScores[procedureId] = Number(radio.value);
 
-                        <input
-                            type="radio"
-                            name="${item.id}"
-                            value="${option}"
-                            ${savedScore === option ? "checked" : ""}
-                        >
+            const card = radio.closest(".procedure-item");
+            card?.classList.add("completed");
 
-                        ${option}
+            const { marksAwarded, totalMarks } =
+                calculateProcedureMarks(station, result);
 
-                    </label>
+            if (scoreDisplay) {
+                scoreDisplay.textContent =
+                    `${marksAwarded} / ${totalMarks}`;
+            }
 
-                `;
-      })
-      .join("");
+            const snapshot = structuredClone(result);
 
-    container.innerHTML += `
-
-                <div class="procedure-item ${isCompleted ? "completed" : ""}">
-
-                    <h3>
-                        ${index + 1}.
-                        ${item.description}
-                    </h3>
-
-                    <div class="score-options">
-                        ${optionsHtml}
-                    </div>
-
-                </div>
-            `;
-  });
-
-  setupProcedureEvents(container, result);
-}
-
-function setupProcedureEvents(container, result) {
-  const radios = container.querySelectorAll(
-    ".procedure-item input[type='radio']",
-  );
-
-  radios.forEach((radio) => {
-    radio.addEventListener("change", () => {
-      const procedureId = radio.name;
-
-      result.procedureScores[procedureId] = Number(radio.value);
-
-      const card = radio.closest(".procedure-item");
-      card.classList.add("completed");
-
-      syncResult(result);
+            try {
+                await syncResult(snapshot);
+            } catch (error) {
+                console.error("Failed to save procedure score:", error);
+            }
+        });
     });
-  });
 }
+
+
+// function setupProcedureEvents(container, result) {
+//     const radios = container.querySelectorAll(
+//         ".procedure-item input[type='radio']"
+//     );
+
+//     radios.forEach((radio) => {
+//         radio.addEventListener("change", async () => {
+//             const procedureId = radio.name;
+
+//             result.procedureScores[procedureId] = Number(radio.value);
+
+//             const card = radio.closest(".procedure-item");
+//             card?.classList.add("completed");
+
+//             const snapshot = structuredClone(result);
+
+//             try {
+//                 await syncResult(snapshot);
+//             } catch (error) {
+//                 console.error("Failed to save procedure score:", error);
+//             }
+//         });
+//     });
+// }
+
 
 function runProcedureTimer(
   container,
@@ -293,9 +441,14 @@ function formulateEachProcedureScore(station, result) {
     }
   });
 
+   const totalProcedureMarks = station.procedureItems.reduce(
+        (total, item) => total + Number(item.scoreOptions[1]),
+        0
+    );
+
   const finalResult = getResult(result.id);
   finalResult.calculateTotal(
-    station.procedureItems.length,
+    totalProcedureMarks,
     station.questions.length,
   );
 }

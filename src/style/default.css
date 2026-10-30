@@ -1637,6 +1637,15 @@ dialog::backdrop {
   font-weight: 600;
 }
 
+.procedure-item.subheading .subheading-description {
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+}
+
 .procedure-footer {
   position: fixed;
   bottom: 0;
@@ -1651,12 +1660,23 @@ dialog::backdrop {
   z-index: 100;
 }
 
+
+.procedure-item.subheading {
+    background: transparent;
+}
+
+.procedure-item.subheading .subheading-description {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
 .answered-count {
   font-weight: 600;
-  padding: 0.8rem 1.5rem;
+  padding: 1.5rem;
   border-radius: 12px;
-  font-weight: 800;
-  background: #71757b;
+  font-weight: 900;
+  color: white;
+  background: #2563eb;
   transition: 0.2s;
 }
 
@@ -1724,6 +1744,23 @@ dialog::backdrop {
   margin-bottom: 20px;
 }
 
+.submission-monitor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.submission-monitor-header p {
+  color: #64748b;
+  margin: 0;
+}
+
+.submission-monitor-header button {
+  margin-left: 8px;
+}
+
 .submission-monitor .table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -1732,7 +1769,8 @@ dialog::backdrop {
   background: #ffffff;
 }
 
-.submission-monitor .submission-table {
+.submission-monitor .submission-table,
+.submission-monitor .combined-results-table {
   width: 100%;
   min-width: 900px;
   border-collapse: separate;
@@ -1741,36 +1779,51 @@ dialog::backdrop {
 }
 
 .submission-monitor .submission-table th,
-.submission-monitor .submission-table td {
+.submission-monitor .submission-table td,
+.submission-monitor .combined-results-table th,
+.submission-monitor .combined-results-table td {
   padding: 14px 16px;
   text-align: center;
   white-space: nowrap;
   border-bottom: 1px solid #e2e8f0;
 }
 
-.submission-monitor .submission-table th {
+.submission-monitor .submission-table th,
+.submission-monitor .combined-results-table th {
   background: #2563eb;
   color: #ffffff;
   font-weight: 600;
 }
 
-.submission-monitor .submission-table th:first-child {
+.submission-monitor .combined-results-table tbody tr td:nth-child(3) {
+  border-right: 1px solid #2563eb;
+}
+
+.submission-monitor .combined-results-table .station-group-end {
+  border-right: 1px solid #2563eb;
+}
+.submission-monitor .submission-table th:first-child,
+.submission-monitor .combined-results-table th:first-child {
   border-top-left-radius: 9px;
 }
 
-.submission-monitor .submission-table th:last-child {
+.submission-monitor .submission-table th:last-child,
+.submission-monitor .combined-results-table th:last-child {
   border-top-right-radius: 9px;
 }
 
-.submission-monitor .submission-table tbody tr:nth-child(even) {
+.submission-monitor .submission-table tbody tr:nth-child(even),
+.submission-monitor .combined-results-table tbody tr:nth-child(even) {
   background: #f8fafc;
 }
 
-.submission-monitor .submission-table tbody tr:hover {
+.submission-monitor .submission-table tbody tr:hover,
+.submission-monitor .combined-results-table tbody tr:hover {
   background: #f0fdfa;
 }
 
-.submission-monitor .submission-table tbody tr:last-child td {
+.submission-monitor .submission-table tbody tr:last-child td,
+.submission-monitor .combined-results-table tbody tr:last-child td {
   border-bottom: none;
 }
 

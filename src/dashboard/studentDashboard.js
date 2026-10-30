@@ -7,8 +7,6 @@ import {
   withLoadingOverlay,
   startQuestionTimer,
   questionCompleted,
-  updateResult,
-  updateResultAtRegularInterval,
   syncResult
 } from "../utilities/utility.js";
 import { renderLoginPage } from "./loginPage.js";
@@ -259,23 +257,52 @@ function renderNavigations(station, selector, result) {
   });
 }
 
-function setupQuestionEvents(container, station, result) {
-  const index = result.currentQuestionIndex;
-  const question = station.questions[index];
+// function setupQuestionEvents(container, station, result) {
+//   const index = result.currentQuestionIndex;
+//   const question = station.questions[index];
 
-  const radios = container.querySelectorAll('input[type="radio"]');
+//   const radios = container.querySelectorAll('input[type="radio"]');
 
-  radios.forEach((radio) => {
-    radio.addEventListener("change", () => {
-      result.studentAnswers[question.id] = radio.value;
+//   radios.forEach((radio) => {
+//     radio.addEventListener("change", () => {
+//       result.studentAnswers[question.id] = radio.value;
 
-      const navBtn = document.querySelector(`[data-index="${index}"]`);
+//       const navBtn = document.querySelector(`[data-index="${index}"]`);
 
-      navBtn.classList.add("answered");
+//       navBtn.classList.add("answered");
       
-      syncResult(result)
+//       syncResult(result)
+//     });
+//   });
+// }
+
+
+function setupQuestionEvents(container, station, result) {
+    const index = result.currentQuestionIndex;
+    const question = station.questions[index];
+
+    const radios = container.querySelectorAll('input[type="radio"]');
+
+    radios.forEach((radio) => {
+        radio.addEventListener("change", async () => {
+            result.studentAnswers[question.id] = radio.value;
+
+            const navBtn = document.querySelector(
+                `[data-index="${index}"]`
+            );
+
+            navBtn?.classList.add("answered");
+
+            // Capture the data as it exists right now.
+            const snapshot = structuredClone(result);
+
+            try {
+                await syncResult(snapshot);
+            } catch (error) {
+                console.error("Failed to save student answer:", error);
+            }
+        });
     });
-  });
 }
 
 function getUnansweredQuestions(station, result) {
