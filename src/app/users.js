@@ -172,6 +172,13 @@ export async function deleteUser(userId) {
     return false;
   }
 
+  try {
+    await deleteUserRemote(userId);
+  } catch (error) {
+    notyf.error(error.message || "Failed to delete user");
+    return false;
+  }
+
   const targetUser = getAllUsers().findIndex((user) => {
     return user.id === getUser.id;
   });
@@ -179,14 +186,10 @@ export async function deleteUser(userId) {
   if (targetUser !== -1) {
     getAllUsers().splice(targetUser, 1);
     removeResultsByStudent(userId);
-   
-    try {
-      await deleteUserRemote(userId);
-    } catch (error) {
-      notyf.error(error.message || "Failed to delete user");
-    }
     return true;
   }
+
+  return false;
 }
 
 export function resetUsers() {

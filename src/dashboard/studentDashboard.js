@@ -7,9 +7,16 @@ import {
   withLoadingOverlay,
   startQuestionTimer,
   questionCompleted,
-  syncResult
+  syncResult,
+  startAssessmentAutosave,
+  notyf,
 } from "../utilities/utility.js";
 import { renderLoginPage } from "./loginPage.js";
+import { getActiveAssessmentTime, updateBrowserSession } from "../session/session.js";
+import {
+  getMaximumProcedureMarks,
+  getMaximumQuestionMarks,
+} from "../../shared/scoring.js";
 
 export function renderQuestionPage(
   container,
@@ -28,9 +35,34 @@ export function renderQuestionPage(
     result.timeRemaining = station.questionTimer.duration * 60;
   }
 
+  if (station.questionTimer.enabled) {
+    const restoredTime = getActiveAssessmentTime(result, "question-assessment");
+    if (restoredTime !== null) result.timeRemaining = restoredTime;
+  }
+
   if (result.timeRemaining == null) {
     result.timeRemaining = station.questionTimer.duration * 60;
   }
+
+  if (station.questions.length > 0) {
+    result.currentQuestionIndex = Math.min(
+      Math.max(0, Number(result.currentQuestionIndex) || 0),
+      station.questions.length - 1,
+    );
+  }
+
+  const timerDeadline = station.questionTimer.enabled
+    ? Date.now() + result.timeRemaining * 1000
+    : null;
+  updateBrowserSession({
+    phase: "question-assessment",
+    userId: user.id,
+    role: user.role,
+    stationId: station.id,
+    type,
+    resultId: result.id,
+    timerDeadline,
+  });
 
   container.innerHTML = `
 
@@ -84,6 +116,7 @@ export function renderQuestionPage(
   renderQuestion(container.querySelector(".question-content"), station, result);
 
   renderNavigations(station, ".question-nav", result);
+  let stopAutosave = startAssessmentAutosave(result);
 
   const navContainer = container.querySelector(".question-nav");
   navContainer.addEventListener("click", (e) => {
@@ -92,6 +125,9 @@ export function renderQuestionPage(
     if (!btn) return;
 
     result.currentQuestionIndex = Number(btn.dataset.index);
+    void syncResult(structuredClone(result)).catch((error) => {
+      console.error("Failed to save current question:", error);
+    });
 
     renderQuestion(
       container.querySelector(".question-content"),
@@ -106,6 +142,9 @@ export function renderQuestionPage(
   nextQuestion.addEventListener("click", () => {
     if (result.currentQuestionIndex < station.questions.length - 1) {
       result.currentQuestionIndex++;
+      void syncResult(structuredClone(result)).catch((error) => {
+        console.error("Failed to save current question:", error);
+      });
 
       renderQuestion(
         container.querySelector(".question-content"),
@@ -118,6 +157,9 @@ export function renderQuestionPage(
   prevQuestion.addEventListener("click", () => {
     if (result.currentQuestionIndex > 0) {
       result.currentQuestionIndex--;
+      void syncResult(structuredClone(result)).catch((error) => {
+        console.error("Failed to save current question:", error);
+      });
 
       renderQuestion(
         container.querySelector(".question-content"),
@@ -128,13 +170,42 @@ export function renderQuestionPage(
   });
 
   // Timer completion triggers scoring and marks the attempt as finished.
-  const timer = runQuestionTimer(
-    container,
-    container.querySelector(".question-timer"),
-    station,
-    user,
+  let timer = null;
+  let isSubmitting = false;
+  const submitAssessment = async () => {
+    if (isSubmitting) return;
+    isSubmitting = true;
+    const previousResult = structuredClone(result);
+    stopAutosave();
+
+    try {
+      await withLoadingOverlay("Submitting assessment", async () => {
+        const finalResult = formulateEachQuestionScore(station, result);
+        questionCompleted(result.id);
+        await syncResult(result);
+
+        clearInterval(timer);
+        renderResultPage(container, user, station, finalResult, type);
+      });
+    } catch (error) {
+      Object.assign(result, previousResult);
+      stopAutosave = startAssessmentAutosave(result);
+      console.error("Failed to submit question assessment:", error);
+      notyf.error(
+        error instanceof TypeError
+          ? "Could not reach the server. Check your connection and try again."
+          : error.message || "Failed to submit the question assessment.",
+      );
+    } finally {
+      isSubmitting = false;
+    }
+  };
+
+  timer = runQuestionTimer(
     result,
-    type
+    station,
+    container.querySelector(".question-timer"),
+    submitAssessment,
   );
 
   const logoutBtn = container.querySelector(".logout-btn");
@@ -149,6 +220,7 @@ export function renderQuestionPage(
           await withLoadingOverlay("Saving assessment", async () => {
             await syncResult(result);
             clearInterval(timer);
+            stopAutosave();
 
             clearAuthToken();
             renderLoginPage(container, station.id, type);
@@ -172,21 +244,7 @@ export function renderQuestionPage(
 
       unansweredQuestions,
 
-      async onConfirm() {
-        try {
-          await withLoadingOverlay("Submitting assessment", async () => {
-            // Convert stored answers into scored question results before finalizing.
-            const finalResult = formulateEachQuestionScore(station, result);
-            questionCompleted(result.id);
-            clearInterval(timer);
-
-            await syncResult(result);
-            renderResultPage(container, user, station, finalResult, type);
-          });
-        } catch (error) {
-          console.error(error);
-        }
-      },
+      onConfirm: submitAssessment,
     });
   });
 }
@@ -300,6 +358,11 @@ function setupQuestionEvents(container, station, result) {
                 await syncResult(snapshot);
             } catch (error) {
                 console.error("Failed to save student answer:", error);
+                notyf.error(
+                  error instanceof TypeError
+                    ? "Could not reach the server. Your answer may not be saved."
+                    : error.message || "Failed to save your answer.",
+                );
             }
         });
     });
@@ -323,20 +386,35 @@ function formulateEachQuestionScore(station, result) {
   station.questions.forEach((question) => {
     const selectedAnswer = result.studentAnswers[question.id];
 
-    const score = selectedAnswer === question.answer ? question.mark : 0;
+    const score = selectedAnswer === question.answer ? Math.max(0, Number(question.mark) || 0) : 0;
 
-    addQuestionScore(result.id, question.id, score);
+    addQuestionScore(
+      result.id,
+      question.id,
+      score,
+      Math.max(0, Number(question.mark) || 0),
+    );
   });
 
   const finalResult = getResult(result.id);
   finalResult.calculateTotal(
-    station.procedureItems.length,
-    station.questions.length,
+    getMaximumProcedureMarks(station),
+    getMaximumQuestionMarks(station),
   );
   return finalResult;
 }
 
-function renderResultPage(container, user, station, result, type) {
+export function renderResultPage(container, user, station, result, type) {
+  updateBrowserSession({
+    phase: "question-result",
+    userId: user.id,
+    role: user.role,
+    stationId: station.id,
+    type,
+    resultId: result.id,
+    timerDeadline: null,
+  });
+
   container.innerHTML = `
 
         <div class="result-page">
@@ -402,23 +480,8 @@ function renderResultPage(container, user, station, result, type) {
   });
 }
 
-function runQuestionTimer(container, timerElement, station, user, result, type) {
+function runQuestionTimer(result, station, timerElement, submitAssessment) {
   if (station.questionTimer.enabled) {
-    // When the timer expires, the attempt is scored and the UI moves to results.
-    return startQuestionTimer(result, station, timerElement, async () => {
-       
-      try {
-        await withLoadingOverlay("Submitting assessment", async () => {
-        
-          const finalResult = formulateEachQuestionScore(station, result);
-          questionCompleted(result.id);
-          await syncResult(result);
-          
-          renderResultPage(container, user, station, finalResult, type);
-        });
-      } catch (error) {
-        console.error(error);
-      }
-    });
+    return startQuestionTimer(result, station, timerElement, submitAssessment);
   }
 }

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { hashPassword, signToken, verifyPassword, verifyToken } from "../lib/auth.js";
 import { toCsv } from "../lib/csv.js";
 import { makeId, readDb, updateDb, updateResultById, createResultIfNotExists } from "../store/db.js";
+import { getStationScoreMetrics } from "../../../shared/scoring.js";
 
 const router = Router();
 
@@ -306,12 +307,17 @@ router.post("/stations/:id/questions", requireAuth, requireRole("admin"), async 
     return res.status(400).json({ message: "invalid question payload" });
   }
 
+  const questionMark = Number(mark);
+  if (!Number.isFinite(questionMark) || questionMark <= 0) {
+    return res.status(400).json({ message: "question mark must be a positive number" });
+  }
+
   const question = {
     id: makeId(),
     description,
     options,
     answer,
-    mark: Number(mark),
+    mark: questionMark,
   };
 
   station.questions.push(question);
@@ -345,10 +351,17 @@ router.patch(
 
     const { description, options, answer, mark } = req.body || {};
 
+    if (mark !== undefined) {
+      const questionMark = Number(mark);
+      if (!Number.isFinite(questionMark) || questionMark <= 0) {
+        return res.status(400).json({ message: "question mark must be a positive number" });
+      }
+      question.mark = questionMark;
+    }
+
     if (description !== undefined) question.description = description;
     if (Array.isArray(options)) question.options = options;
     if (answer !== undefined) question.answer = answer;
-    if (mark !== undefined) question.mark = Number(mark);
 
     station.updatedAt = new Date().toISOString();
     await updateDb(() => db);
@@ -401,10 +414,18 @@ router.post("/stations/:id/procedure-items", requireAuth, requireRole("admin"), 
     return res.status(400).json({ message: "invalid procedure payload" });
   }
 
+  const normalizedScoreOptions = scoreOptions.map(Number);
+  if (
+    normalizedScoreOptions.length < 2 ||
+    normalizedScoreOptions.some((score) => !Number.isFinite(score) || score < 0)
+  ) {
+    return res.status(400).json({ message: "procedure score options must be non-negative numbers" });
+  }
+
   const item = {
     id: makeId(),
     description,
-    scoreOptions: scoreOptions.map(Number),
+    scoreOptions: normalizedScoreOptions,
   };
 
   station.procedureItems.push(item);
@@ -438,10 +459,21 @@ router.patch(
 
     const { description, scoreOptions } = req.body || {};
 
-    if (description !== undefined) item.description = description;
-    if (Array.isArray(scoreOptions)) {
-      item.scoreOptions = scoreOptions.map(Number);
+    if (scoreOptions !== undefined) {
+      if (!Array.isArray(scoreOptions)) {
+        return res.status(400).json({ message: "invalid procedure score options" });
+      }
+      const normalizedScoreOptions = scoreOptions.map(Number);
+      if (
+        normalizedScoreOptions.length < 2 ||
+        normalizedScoreOptions.some((score) => !Number.isFinite(score) || score < 0)
+      ) {
+        return res.status(400).json({ message: "procedure score options must be non-negative numbers" });
+      }
+      item.scoreOptions = normalizedScoreOptions;
     }
+
+    if (description !== undefined) item.description = description;
 
     station.updatedAt = new Date().toISOString();
     await updateDb(() => db);
@@ -500,47 +532,39 @@ router.get("/results.csv", requireAuth, async (_req, res) => {
       result,
     ]),
   );
-  const submittedStudentIds = new Set(
-    db.results
-      .filter(
-        (result) =>
-          result.status?.question === "completed" ||
-          result.status?.procedure === "completed",
-      )
-      .map((result) => result.studentId),
-  );
-
   const rows = db.users
-    .filter(
-      (user) =>
-        user.role === "student" && submittedStudentIds.has(user.id),
-    )
+    .filter((user) => user.role === "student")
     .map((student) => {
       const row = {
         admissionNo: student.admissionNo || "",
         firstname: student.firstname,
         surname: student.surname,
       };
+      let cumulativeEarned = 0;
+      let cumulativeMaximum = 0;
 
       for (const station of stations) {
         const result = resultsByStudentStation.get(
           `${student.id}:${station.id}`,
         );
         const prefix = station.name;
+        const metrics = getStationScoreMetrics(station, result);
+        cumulativeEarned += metrics.earned;
+        cumulativeMaximum += metrics.maximum;
 
-        row[`${prefix} - Procedure Score`] = result
-          ? sumScores(result.procedureResults, result.procedureTotal)
-          : "";
-        row[`${prefix} - Procedure Percentage`] = result
-          ? result.procedurePercentage
-          : "";
-        row[`${prefix} - Question Score`] = result
-          ? sumScores(result.questionResults, result.questionTotal)
-          : "";
-        row[`${prefix} - Question Percentage`] = result
-          ? result.questionPercentage
-          : "";
+        row[`${prefix} - Procedure Score`] = metrics.procedureEarned.toFixed(2);
+        row[`${prefix} - Procedure Percentage`] = formatPercentage(metrics.procedurePercentage);
+        row[`${prefix} - Question Score`] = metrics.questionEarned.toFixed(2);
+        row[`${prefix} - Question Percentage`] = formatPercentage(metrics.questionPercentage);
       }
+
+      const cumulativePercentage = cumulativeMaximum > 0
+        ? (cumulativeEarned / cumulativeMaximum) * 100
+        : null;
+      row["Cumulative Percentage"] = formatPercentage(cumulativePercentage);
+      row.Remark = cumulativePercentage === null
+        ? "N/A"
+        : cumulativePercentage < 50 ? "Failed" : "Passed";
 
       return row;
     });
@@ -566,29 +590,16 @@ router.get("/stations/:id/results.csv", requireAuth, async (req, res) => {
     .filter((result) => result.stationId === req.params.id)
     .map((result) => {
       const student = db.users.find((user) => user.id === result.studentId);
-      const procedureTotal = sumScores(result.procedureResults, result.procedureTotal);
-      const questionTotal = sumScores(result.questionResults, result.questionTotal);
-      const procedurePercentage =
-        Number.isFinite(Number(result.procedurePercentage))
-          ? Number(result.procedurePercentage)
-          : station.procedureItems.length > 0
-            ? (procedureTotal / station.procedureItems.length) * 100
-            : 0;
-      const questionPercentage =
-        Number.isFinite(Number(result.questionPercentage))
-          ? Number(result.questionPercentage)
-          : station.questions.length > 0
-            ? (questionTotal / station.questions.length) * 100
-            : 0;
+      const metrics = getStationScoreMetrics(station, result);
 
       return {
         firstname: student?.firstname || "",
         surname: student?.surname || "",
         admissionNo: student?.admissionNo || "",
-        procedureTotal,
-        procedurePercentage,
-        questionTotal,
-        questionPercentage,
+        procedureTotal: metrics.procedureEarned.toFixed(2),
+        procedurePercentage: formatPercentage(metrics.procedurePercentage),
+        questionTotal: metrics.questionEarned.toFixed(2),
+        questionPercentage: formatPercentage(metrics.questionPercentage),
         statusProcedure: result.status?.procedure || "",
         statusQuestion: result.status?.question || "",
       };
@@ -955,18 +966,13 @@ function getResultMergeKey(result) {
   return "";
 }
 
-function sumScores(entries, fallback = 0) {
-  if (!Array.isArray(entries) || entries.length === 0) {
-    return toNumberOrZero(fallback);
-  }
-
-  const total = entries.reduce((sum, entry) => sum + Number(entry?.score || 0), 0);
-  return Number.isFinite(total) ? total : toNumberOrZero(fallback);
-}
-
 function toNumberOrZero(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatPercentage(value) {
+  return value == null ? "N/A" : Number(value).toFixed(2);
 }
 
 function normalizeStationName(name) {

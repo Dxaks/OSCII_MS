@@ -4,6 +4,7 @@ import { showConfirmDialog, showNoticeDialog } from "../utilities/utility.js";
 import logo from "../asset/icons/account-circle.svg";
 import { clearAuthToken } from "../app/backendApi.js";
 import { createResultAndWait } from "../app/result.js";
+import { updateBrowserSession } from "../session/session.js";
 
 export function renderAssessmentInfo(
   container,
@@ -12,6 +13,16 @@ export function renderAssessmentInfo(
   type,
   existingResult,
 ) {
+  updateBrowserSession({
+    phase: "question-info",
+    userId: user.id,
+    role: user.role,
+    stationId: station.id,
+    type,
+    resultId: null,
+    timerDeadline: null,
+  });
+
   container.innerHTML = `
 
         <div class="assessment-info-page">
@@ -76,11 +87,11 @@ export function renderAssessmentInfo(
                 <div class="assessment-details">
 
                     <p>
+                        ${station.questionName}
+                    </p>
 
-                        <strong>Station:</strong>
-
-                        ${station.name}
-
+                    <p>
+                        ${station.description}
                     </p>
 
                     <p>
@@ -185,6 +196,15 @@ export function renderAssessmentInfo(
         return;
       }
 
+      updateBrowserSession({
+        phase: "question-assessment",
+        userId: user.id,
+        role: user.role,
+        stationId: station.id,
+        type,
+        resultId: result.id,
+        timerDeadline: null,
+      });
       renderQuestionPage(container, station, user, type, result);
     } catch (error) {
       console.error("Failed to prepare assessment:", error);

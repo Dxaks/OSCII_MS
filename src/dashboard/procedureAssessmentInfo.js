@@ -5,8 +5,20 @@ import { renderProcedurePage } from "./examinerDashboard.js";
 import { renderLoginPage } from "./loginPage.js";
 import logo from "../asset/icons/account-circle.svg";
 import { clearAuthToken } from "../app/backendApi.js";
+import { updateBrowserSession } from "../session/session.js";
 
 export function renderProcedureInfo(container, station, moderator, type) {
+  updateBrowserSession({
+    phase: "procedure-info",
+    stationId: station.id,
+    type,
+    userId: moderator.id,
+    role: moderator.role,
+    studentId: null,
+    resultId: null,
+    timerDeadline: null,
+  });
+
   container.innerHTML = `
 
         <div class="procedure-info">
@@ -35,11 +47,6 @@ export function renderProcedureInfo(container, station, moderator, type) {
 
                 <p>
                    Procedure Description: ${station.description}
-                </p>
-
-                <p>
-                    Procedure Items:
-                    ${station.procedureItems.length}
                 </p>
 
                 <p>
@@ -166,6 +173,16 @@ function setupProcedureInfoEvents(container, station, moderator, type) {
             return;
           }
 
+          updateBrowserSession({
+            phase: "procedure-assessment",
+            stationId: station.id,
+            type,
+            userId: moderator.id,
+            role: moderator.role,
+            studentId: student.id,
+            resultId: existingResult.id,
+            timerDeadline: null,
+          });
           renderProcedurePage(
             container,
             station,

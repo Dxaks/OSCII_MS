@@ -8,6 +8,7 @@ export function renderMainMenu(container) {
 
   const backBtn = document.createElement("button");
   backBtn.className = "back-btn";
+  backBtn.classList.add("main-menu-back-btn")
   backBtn.textContent = "← Back";
 
   backBtn.addEventListener("click", () => {

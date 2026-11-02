@@ -162,7 +162,12 @@ export function importProcedureItems(csvData, stationId, onComplete) {
           }
 
           const description = data[0];
-          const scoreOptions = [0, Number(data[1])];
+          const maximumMark = Number(data[1]);
+          if (!description || !Number.isFinite(maximumMark) || maximumMark <= 0) {
+            notyf.error("Each procedure item needs a description and a positive mark.");
+            continue;
+          }
+          const scoreOptions = [0, maximumMark];
 
           try {
             await createProcedureItemRemote(stationId, {

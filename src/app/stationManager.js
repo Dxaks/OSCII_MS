@@ -246,15 +246,14 @@ export async function deleteProcedureItem(stationId, procedureId) {
   const station = StationManagement.getStationById(stationId);
   if (!station) return false;
 
+  const procedure = station.procedureItems.find((item) => item.id === procedureId);
+  if (!procedure) return false;
+
+  await deleteProcedureItemRemote(stationId, procedureId);
+
   station.procedureItems = station.procedureItems.filter(
     (item) => item.id !== procedureId,
   );
-
-  try {
-    await deleteProcedureItemRemote(stationId, procedureId);
-  } catch (error) {
-    notyf.error(error.message || "Failed to delete procedure item");
-  }
 
   return true;
 }
@@ -303,11 +302,11 @@ export async function deleteQuestionItem(stationId, questionId) {
 
   if(!targetQuestion) return false;
 
-  try {
-    await deleteQuestionRemote(station.id, targetQuestion.id);
-  } catch (error) {
-    notyf.error(error.message || "Failed to delete question");
-  }
+  await deleteQuestionRemote(station.id, targetQuestion.id);
+
+  station.questions = station.questions.filter(
+    (question) => question.id !== questionId,
+  );
 
   return true;
 }

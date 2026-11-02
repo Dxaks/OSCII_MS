@@ -7,7 +7,7 @@ import { updateResultRemote } from "../app/backendApi.js";
 let loadingOverlay = null;
 
 export const notyf = new Notyf({
-  duration: 1000,
+  duration: 5000,
   position: {
     x: "center",
     y: "top",
@@ -25,7 +25,7 @@ export const notyf = new Notyf({
     {
       type: "error",
       background: "indianred",
-      duration: 10000,
+      duration: 12000,
       dismissible: true,
     },
   ],
@@ -260,6 +260,11 @@ export function startQuestionTimer(result, station, timerElement, onTimeUp) {
 
   timerElement.textContent = formatTime(timeRemaining);
 
+  if (timeRemaining <= 0) {
+    queueMicrotask(() => onTimeUp?.());
+    return null;
+  }
+
   // The timer state lives on the result so it can survive rerenders and refreshes.
   const timerId = setInterval(() => {
     timeRemaining--;
@@ -302,6 +307,11 @@ export function startProcedureTimer(result, station, timerElement, onTimeUp) {
   let timeRemaining = result.procedureTimeRemaining;
 
   timerElement.textContent = formatTime(timeRemaining);
+
+  if (timeRemaining <= 0) {
+    queueMicrotask(() => onTimeUp?.());
+    return null;
+  }
 
   // Procedure timing uses the same persistence strategy as the question flow.
   const timerId = setInterval(() => {
@@ -347,6 +357,26 @@ export function startProcedureTimer(result, station, timerElement, onTimeUp) {
 
 
 const resultSaveQueues = new Map();
+
+export function startAssessmentAutosave(result) {
+  const save = () => {
+    void syncResult(structuredClone(result)).catch((error) => {
+      console.error("Failed to autosave assessment progress:", error);
+    });
+  };
+
+  const intervalId = setInterval(save, 10000);
+  const onVisibilityChange = () => {
+    if (document.visibilityState === "hidden") save();
+  };
+
+  document.addEventListener("visibilitychange", onVisibilityChange);
+
+  return () => {
+    clearInterval(intervalId);
+    document.removeEventListener("visibilitychange", onVisibilityChange);
+  };
+}
 
 export function syncResult(result) {
     const resultId = result.id;

@@ -4,6 +4,19 @@ body {
   background: whitesmoke;
 }
 
+.notyf .notyf__toast {
+  width: 80vw;
+  max-width: 80vw;
+  border-radius: 12px;
+}
+
+@media (max-width: 480px) {
+  .notyf .notyf__toast {
+    width: 92vw;
+    max-width: 92vw;
+  }
+}
+
 .loading-overlay {
   position: fixed;
   inset: 0;
@@ -15,6 +28,18 @@ body {
     radial-gradient(circle at top, rgba(37, 99, 235, 0.15), transparent 55%),
     rgba(15, 23, 42, 0.82);
   backdrop-filter: blur(10px);
+}
+
+.primary-btn {
+  margin-top: 10px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  padding: 15px 20px;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
 }
 
 .loading-card {
@@ -59,18 +84,23 @@ body {
 }
 
 .home-page {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
   overflow: hidden;
+  padding: 0 1.5rem 4rem;
 }
 
 .home-logo {
   position: absolute;
-  width: 500px;
-  height: 500px;
+  width: min(500px, 80vw, 75vh);
+  height: min(500px, 80vw, 75vh);
   background-image: url("../asset/images/umcons-logo.jpg");
   background-repeat: no-repeat;
   background-size: contain;
@@ -82,8 +112,9 @@ body {
 .home-content {
   position: relative;
   z-index: 2;
-  width: 750px;
-  padding: 3rem;
+  box-sizing: border-box;
+  width: min(750px, 100%);
+  padding: clamp(1.5rem, 5vw, 3rem);
   text-align: center;
   border-radius: 25px;
   backdrop-filter: blur(8px);
@@ -91,9 +122,31 @@ body {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
 
+.login-footer.home-footer {
+  right: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(239, 246, 255, 0.92);
+  border-top-color: rgba(37, 99, 235, 0.16);
+  box-shadow: 0 -8px 24px rgba(37, 99, 235, 0.06);
+  color: #64748b;
+}
+
+.home-footer .login-footer-name {
+  color: #1e293b;
+}
+
+.home-footer .login-footer-separator {
+  color: #94a3b8;
+}
+
+.home-footer .login-footer-organization {
+  color: #2563eb;
+}
+
 .home-content h1 {
-  font-size: 3rem;
-  line-height: 1.3;
+  font-size: clamp(1.65rem, 5vw, 3rem);
+  line-height: 1.2;
   color: #1e293b;
 }
 
@@ -103,21 +156,22 @@ body {
 }
 
 .home-content p {
-  margin: 1.5rem 0;
+  margin: clamp(1rem, 3vh, 1.5rem) 0;
   color: #64748b;
-  font-size: 1.1rem;
+  font-size: clamp(0.95rem, 2.2vw, 1.1rem);
 }
 
 .home-actions {
   display: flex;
   justify-content: center;
-  gap: 1.5rem;
-  margin-top: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: clamp(1rem, 3vh, 2rem);
 }
 
 .home-page-btn {
   border: none;
-  padding: 1rem 2rem;
+  padding: 0.9rem clamp(1rem, 3vw, 2rem);
   border-radius: 50px;
   cursor: pointer;
   font-size: 1rem;
@@ -130,6 +184,26 @@ body {
 .home-page-btn:hover {
   transform: translateY(-4px);
   box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+}
+
+@media (max-width: 760px) {
+  .home-page {
+    padding: 0 1rem 5.25rem;
+  }
+
+  .home-content {
+    width: 100%;
+    padding: clamp(1.25rem, 6vw, 2rem);
+  }
+
+  .home-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .home-page-btn {
+    width: min(320px, 100%);
+  }
 }
 
 .secondary-btn {
@@ -500,10 +574,22 @@ body {
   margin-bottom: 1.5rem;
   font-weight: 600;
   transition: background 0.2s ease;
+  margin-right: 0;
 }
 
 .back-btn:hover {
   background: #1e293b;
+}
+
+.main-menu-back-btn {
+  position: absolute;
+  right: 0;
+  margin-right: 50px;
+}
+
+.main-menu-page h1 {
+  text-align: right;
+  margin-top: 50px;
 }
 
 .station-management-page h2 {
@@ -717,6 +803,60 @@ body {
   background: #f1f5f9;
 }
 
+.bulk-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.bulk-user-actions label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.bulk-user-actions input[type="checkbox"],
+.user-select-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.selected-user-count {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.bulk-delete-users-btn {
+  margin-left: auto;
+  padding: 0.7rem 1rem;
+  border: 0;
+  border-radius: 10px;
+  color: #fff;
+  background: #dc2626;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.bulk-delete-users-btn:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+@media (max-width: 640px) {
+  .bulk-user-actions {
+    flex-wrap: wrap;
+  }
+
+  .bulk-delete-users-btn {
+    margin-left: 0;
+  }
+}
+
 .result-table th:first-child {
   border-top-left-radius: 10px;
 }
@@ -844,17 +984,63 @@ body {
 /* login page */
 
 .login-page {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 85vh;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100vh;
+  height: 100dvh;
+  padding-bottom: 4rem;
+  overflow: hidden;
+}
+
+.login-footer {
+  position: absolute;
+  box-sizing: border-box;
+  right: 0;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 4rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(15, 23, 42, 0.94);
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.login-footer-name {
+  color: #fff;
+  font-weight: 700;
+}
+
+.login-footer-separator {
+  color: #64748b;
+}
+
+.login-footer-organization {
+  color: #93c5fd;
+  font-weight: 800;
+  letter-spacing: 0.12em;
 }
 
 .login-left {
   position: relative;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   overflow: hidden;
+  background-color: rgba(15, 23, 42, 0.94);
   background-image: url("../asset/images/umcons_background.jpg");
   background-size: contain;
   background-repeat: no-repeat;
@@ -862,8 +1048,8 @@ body {
 }
 
 .login-overlay {
-  width: 80%;
-  max-width: 500px;
+  box-sizing: border-box;
+  width: min(80%, 500px);
   padding: 3rem;
   border-radius: 30px;
   display: flex;
@@ -912,13 +1098,16 @@ body {
 }
 
 .login-right {
+  min-width: 0;
+  min-height: 0;
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
 .login-card {
-  width: 450px;
+  box-sizing: border-box;
+  width: min(450px, calc(100% - 2rem));
   padding: 2rem;
   border-radius: 20px;
   background: white;
@@ -936,6 +1125,8 @@ body {
   margin-top: 1rem;
   border-radius: 10px;
   border: 1px solid #ddd;
+  font-size: 1.3rem;
+  font-weight: 700;
 }
 
 .login-form button {
@@ -946,6 +1137,103 @@ body {
   border-radius: 10px;
   cursor: pointer;
   margin-top: 10px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .login-page {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 0.7fr) minmax(0, 1fr);
+    padding-bottom: 5.25rem;
+  }
+
+  .login-left {
+    min-height: 0;
+    background-size: cover;
+  }
+
+  .login-right {
+    padding: 0.5rem 1rem;
+  }
+
+  .login-overlay {
+    width: min(90%, 500px);
+    padding: clamp(0.85rem, 4vh, 1.5rem);
+  }
+
+  .login-overlay h1 {
+    margin-bottom: 0.4rem;
+    font-size: clamp(1.35rem, 5vw, 2rem);
+  }
+
+  .login-overlay h2 {
+    margin: 0.4rem 0;
+    font-size: clamp(0.9rem, 3vw, 1.2rem);
+  }
+
+  .login-overlay p {
+    margin: 0.4rem 0 0;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .login-card {
+    width: min(450px, 100%);
+    padding: 1rem 1.25rem;
+  }
+
+  .login-card h2 {
+    margin: 0 0 0.25rem;
+  }
+
+  .login-form {
+    gap: 0.5rem;
+  }
+
+  .login-form input {
+    margin-top: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 1.1rem;
+  }
+
+  .login-form button {
+    margin-top: 0.25rem;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+  }
+
+  .login-footer {
+    flex-wrap: wrap;
+    gap: 0.3rem 0.4rem;
+    min-height: 4.75rem;
+    padding: 0.5rem;
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-height: 650px) and (min-width: 761px) {
+  .login-overlay {
+    padding: 1.5rem;
+  }
+
+  .login-overlay h1 {
+    font-size: 2rem;
+  }
+
+  .login-card {
+    padding: 1.25rem;
+  }
+
+  .login-form input {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+  }
+}
+
+input[type=text] {
+  font-size: 1.3rem;
+  font-weight: 700;
 }
 
 /* assessment info page */
@@ -1319,6 +1607,7 @@ dialog::backdrop {
   position: absolute;
   right: 50px;
   align-self: flex-start;
+  margin-top: 20px;
 }
 
 .moderator-logout-btn {
@@ -1547,30 +1836,51 @@ dialog::backdrop {
 
 .procedure-page {
   min-height: 100vh;
+  padding: 1.5rem 1.5rem 1.5rem 340px;
+}
+
+.procedure-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 100;
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
-  gap: 1.5rem;
+  width: 320px;
+  padding: 1rem;
+  overflow-y: auto;
+  color: #fff;
+  background: whitesmoke;
+  box-shadow: 4px 0 18px rgba(0, 0, 0, 0.18);
+}
+
+.procedure-sidebar .moderator-logout-btn {
+  position: static;
+  flex: 0 0 auto;
+  width: 100%;
+  margin-bottom: 1rem;
 }
 
 .procedure-header {
   display: flex;
-  justify-content: space-between;
-  gap: 2rem;
-  padding: 1.5rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0;
+  background: white;
+  color: #131a25;
+  padding: 0.75rem;
+  box-shadow: 4px 0 18px rgba(0, 0, 0, 0.18);
+  box-shadow: none;
 }
 
 .moderator-info h3,
 .student-info h3 {
   margin-bottom: 0.7rem;
   font-size: 1.1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   padding-bottom: 0.5rem;
 }
+
 .moderator-info p,
 .student-info p {
   margin: 0.4rem 0;
@@ -1578,11 +1888,18 @@ dialog::backdrop {
 
 .station-details {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 1.5rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.08);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(255,  255, 255, 0.08);
+}
+
+.station-details h2 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
 }
 
 .procedure-timer {
@@ -1590,15 +1907,16 @@ dialog::backdrop {
   font-weight: bold;
   padding: 0.5rem 1rem;
   border-radius: 12px;
-  color: white;
-  background: #2563eb;
+  background: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+  color: #2563eb;
 }
 
 .procedure-items {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 100px;
+  min-width: 0;
 }
 
 .procedure-item {
@@ -1612,8 +1930,9 @@ dialog::backdrop {
 }
 
 .procedure-item.completed {
-  background: #71757b;
-  border-left: 5px solid #22c55e;
+  background: #22c55e;
+  border-left: 5px solid #71757b;
+  color: white;
 }
 
 .procedure-item h3 {
@@ -1621,6 +1940,7 @@ dialog::backdrop {
   margin-bottom: 1rem;
   font-size: 1rem;
   line-height: 1.5;
+  padding-right: 20px;
 }
 
 .score-options {
@@ -1647,17 +1967,15 @@ dialog::backdrop {
 }
 
 .procedure-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  padding: 1rem 2rem;
-  background: white;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.1);
-  z-index: 100;
+  gap: 0.75rem;
+  margin-top: auto;
+  padding: 1rem 0 0;
+  background: transparent;
+  box-shadow: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 
@@ -1671,29 +1989,136 @@ dialog::backdrop {
 }
 
 .answered-count {
-  font-weight: 600;
-  padding: 1.5rem;
+  width: 80%;
+  padding: 0.8rem 1rem;
   border-radius: 12px;
+  text-align: center;
   font-weight: 900;
-  color: white;
-  background: #2563eb;
+  font-size: 1.5rem;
+  background: white;
+  color: #2563eb;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
   transition: 0.2s;
+}
+
+.procedure-footer .procedure-timer {
+  width: 80%;
+  font-weight: 900;
+  text-align: center;
 }
 
 .submit-procedure-btn {
   border: none;
-  padding: 0.8rem 1.5rem;
+  padding: 0.8rem 1rem;
+  width: 80%;
   border-radius: 12px;
   cursor: pointer;
-  font-weight: 800;
+  font-weight: 900;
   transition: 0.2s;
   color: white;
   background: #dc2626;
+  font-size: 1rem;
 }
+
+ .procedure-footer .submit-procedure-btn {
+    border: none;
+    padding: 0.8rem 1rem;
+    width: 80%;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 900;
+    transition: 0.2s;
+    color: white;
+    background: #dc2626;
+    font-size: 1rem;
+    padding: 0.7rem 0.5rem;
+  }
 
 .submit-procedure-btn:hover {
   background: rgba(220, 38, 38, 0.25);
   transform: translateY(-2px);
+}
+
+@media (max-width: 760px) {
+  .procedure-page {
+    padding: min(44vh, 330px) 1rem 1rem;
+  }
+
+  .procedure-sidebar {
+    inset: 0 0 auto;
+    width: 100%;
+    max-height: min(42vh, 320px);
+    padding: 0.75rem;
+    margin: 0.75rem;
+    overflow-y: auto;
+    background: whitesmoke;
+  }
+
+  .procedure-sidebar .moderator-logout-btn {
+    margin-bottom: 0.75rem;
+  }
+
+  .procedure-header {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .procedure-header .station-details {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .procedure-header .moderator-info,
+  .procedure-header .student-info {
+    font-size: 0.85rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 4px 0 18px rgba(0, 0, 0, 0.18);
+    padding-bottom: 0.5rem;
+    padding-left: 0.75rem;
+  }
+
+  .procedure-header h3 {
+    margin-bottom: 0.35rem;
+  }
+
+  .procedure-header p {
+    margin: 0.25rem 0;
+  }
+
+  .procedure-footer {
+    flex-direction: row;
+    gap: 0.5rem;
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .procedure-footer .answered-count,
+  .procedure-footer .procedure-timer,
+  .procedure-footer .submit-procedure-btn {
+    flex: 1;
+    width: auto;
+  }
+
+  .procedure-footer .answered-count {
+    padding: 0.7rem 0.4rem;
+    font-size: 0.85rem;
+  }
+
+  .procedure-footer .procedure-timer {
+    padding: 0.6rem 0.4rem;
+    font-size: 1rem;
+  }
+
+  .procedure-item {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .score-options {
+    gap: 1.3rem;
+    padding-left: 0.75rem;
+  }
 }
 
 /* user upload div*/
@@ -1801,6 +2226,21 @@ dialog::backdrop {
 
 .submission-monitor .combined-results-table .station-group-end {
   border-right: 1px solid #2563eb;
+}
+
+.submission-monitor .combined-results-table .cumulative-result-header,
+.submission-monitor .combined-results-table .cumulative-percentage-cell {
+  border-left: 1px solid #2563eb;
+}
+
+.submission-monitor .combined-results-table .result-passed {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.submission-monitor .combined-results-table .result-failed {
+  color: #b91c1c;
+  font-weight: 700;
 }
 .submission-monitor .submission-table th:first-child,
 .submission-monitor .combined-results-table th:first-child {

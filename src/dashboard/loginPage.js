@@ -197,13 +197,25 @@ export function renderLoginPage(container, stationId, type) {
 
     </div>
 
+    <footer class="login-footer" aria-label="Developer credit">
+        <span class="login-footer-name">Zakariya Auwal</span>
+        <span class="login-footer-separator" aria-hidden="true">|</span>
+        <span class="login-footer-role">Junior Software Developer</span>
+        <span class="login-footer-separator" aria-hidden="true">|</span>
+        <span class="login-footer-organization">UMCONS</span>
+    </footer>
+
 </div>
 
 `;
 
 
   if (isProtectedLogin(type)) {
-    saveBrowserSession({stationId: stationId, type: type});
+    saveBrowserSession({
+      phase: "protected-login",
+      stationId,
+      type,
+    });
   }
 
   syncProtectedLoginHistory(container, stationId, type);
@@ -285,7 +297,13 @@ function setupLoginEvents(container, stationId, type) {
           setAuthToken(user.token);
         }
 
-        clearSession("session");
+        saveBrowserSession({
+          phase: "question-info",
+          stationId: station.id,
+          type,
+          userId: user.id,
+          role: user.role,
+        });
         leaveProtectedLoginFlow();
         const existingResult = getStudentResults(user.id, station.id);
         renderAssessmentInfo(container, user, station, type, existingResult);
@@ -297,7 +315,13 @@ function setupLoginEvents(container, stationId, type) {
           setAuthToken(user.token);
         }
 
-        clearSession("session");
+        saveBrowserSession({
+          phase: "procedure-info",
+          stationId: station.id,
+          type,
+          userId: user.id,
+          role: user.role,
+        });
         leaveProtectedLoginFlow();
         renderProcedureInfo(container, station, user, type);
       }

@@ -86,6 +86,11 @@ export async function loginWithBackend(username, password) {
   });
 }
 
+export async function getAuthenticatedUser() {
+  const response = await apiRequest("/auth/me", { method: "GET" });
+  return response.user;
+}
+
 export async function createUserRemote(payload) {
   return apiRequest("/users", {
     method: "POST",

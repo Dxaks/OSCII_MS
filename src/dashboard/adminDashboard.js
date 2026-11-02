@@ -37,6 +37,7 @@ import {
   showNoticeDialog,
 } from "../utilities/utility.js";
 import { renderHomePage } from "./homePage.js";
+import { getStationScoreMetrics } from "../../shared/scoring.js";
 import {
   apiRequest,
   clearAuthToken,
@@ -1045,9 +1046,19 @@ function showProcedureModal(stationId, container, procedure = null) {
         title: "Delete Procedure",
         message: "Are you sure you want to delete this procedure item?",
         async onConfirm() {
-          await deleteProcedureItem(stationId, procedure.id);
-          overlay.remove();
-          renderStationPage(container, stationId);
+          try {
+            const deleted = await deleteProcedureItem(stationId, procedure.id);
+            if (!deleted) {
+              notyf.error("Procedure item was not found. Refresh the station and try again.");
+              return;
+            }
+
+            overlay.remove();
+            renderStationPage(container, stationId);
+            notyf.success("Procedure item deleted successfully.");
+          } catch (error) {
+            notyf.error(error.message || "Failed to delete procedure item.");
+          }
         },
       });
     });
@@ -1062,6 +1073,14 @@ async function handleProcedureSubmit(e, stationId, container, procedure) {
   const formData = new FormData(e.target);
   const description = formData.get("description");
   const scoreOptions = formData.get("scoreOptions").split(",").map(Number);
+
+  if (
+    scoreOptions.length < 2 ||
+    scoreOptions.some((score) => !Number.isFinite(score) || score < 0)
+  ) {
+    notyf.error("Enter at least two valid, non-negative score options.");
+    return;
+  }
 
   await withLoadingOverlay(
     isEditMode ? "Updating procedure item" : "Creating procedure item",
@@ -1154,6 +1173,8 @@ function showQuestionModal(stationId, container, question = null) {
         <input
           type="number"
           name="mark"
+          min="0.01"
+          step="any"
           placeholder="Mark"
           value="${question?.mark || ""}"
           required
@@ -1200,9 +1221,19 @@ function showQuestionModal(stationId, container, question = null) {
         title: "Delete Question",
         message: "Are you sure you want to delete this question?",
         async onConfirm() {
-          await deleteQuestionItem(stationId, question.id);
-          overlay.remove();
-          renderStationPage(container, stationId);
+          try {
+            const deleted = await deleteQuestionItem(stationId, question.id);
+            if (!deleted) {
+              notyf.error("Question was not found. Refresh the station and try again.");
+              return;
+            }
+
+            overlay.remove();
+            renderStationPage(container, stationId);
+            notyf.success("Question deleted successfully.");
+          } catch (error) {
+            notyf.error(error.message || "Failed to delete question.");
+          }
         },
       });
     });
@@ -1223,6 +1254,11 @@ async function handleQuestionSubmit(e, stationId, container, question) {
 
   const answer = formData.get("answer");
   const mark = Number(formData.get("mark"));
+
+  if (!Number.isFinite(mark) || mark <= 0) {
+    notyf.error("Question marks must be a positive number.");
+    return;
+  }
 
 
   const isEditMode = question !== null;
@@ -1347,11 +1383,23 @@ function renderUsers(container) {
 
     <div class="result-station-card">
 
+        <div class="bulk-user-actions">
+            <label>
+                <input type="checkbox" class="select-all-users">
+                Select all
+            </label>
+            <span class="selected-user-count">0 selected</span>
+            <button class="bulk-delete-users-btn" type="button" disabled>
+                Delete selected
+            </button>
+        </div>
+
         <table class="result-table">
 
             <thead>
 
                 <tr>
+                    <th>Select</th>
                     <th>S/N</th>
 
                     <th>Firstname</th>
@@ -1406,7 +1454,7 @@ function renderUsers(container) {
         <tr>
 
             <td
-            colspan="7"
+            colspan="8"
             style="
             text-align:center
             "
@@ -1427,6 +1475,15 @@ function renderUsers(container) {
     tbody.innerHTML += `
 
         <tr class="user-data">
+
+            <td>
+                <input
+                    type="checkbox"
+                    class="user-select-checkbox"
+                    data-user-id="${user.id}"
+                    aria-label="Select ${user.firstname} ${user.surname}"
+                >
+            </td>
 
             <td>
             ${index + 1}
@@ -1481,6 +1538,61 @@ function renderUsers(container) {
         `;
   });
 
+  const selectAll = section.querySelector(".select-all-users");
+  const selectedCount = section.querySelector(".selected-user-count");
+  const bulkDeleteButton = section.querySelector(".bulk-delete-users-btn");
+  const updateSelectionControls = () => {
+    const checkboxes = [...tbody.querySelectorAll(".user-select-checkbox")];
+    const selected = checkboxes.filter((checkbox) => checkbox.checked);
+    selectedCount.textContent = `${selected.length} selected`;
+    bulkDeleteButton.disabled = selected.length === 0;
+    selectAll.checked = checkboxes.length > 0 && selected.length === checkboxes.length;
+    selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+  };
+
+  selectAll.addEventListener("change", () => {
+    tbody.querySelectorAll(".user-select-checkbox").forEach((checkbox) => {
+      checkbox.checked = selectAll.checked;
+    });
+    updateSelectionControls();
+  });
+
+  tbody.addEventListener("change", (e) => {
+    if (e.target.matches(".user-select-checkbox")) updateSelectionControls();
+  });
+
+  bulkDeleteButton.addEventListener("click", () => {
+    const selectedUserIds = [...tbody.querySelectorAll(".user-select-checkbox:checked")]
+      .map((checkbox) => checkbox.dataset.userId);
+    const selectedUsers = selectedUserIds
+      .map((userId) => getUserById(userId))
+      .filter(Boolean);
+
+    if (selectedUsers.length === 0) return;
+
+    showConfirmDialog({
+      title: "Delete selected users",
+      message: `Delete ${selectedUsers.length} selected user(s) and their assessment data? This cannot be undone.`,
+      async onConfirm() {
+        await withLoadingOverlay("Deleting selected users", async () => {
+          let deletedCount = 0;
+          for (const user of selectedUsers) {
+            if (!(await deleteUser(user.id))) break;
+            deletedCount++;
+          }
+          renderUsers(container);
+          if (deletedCount === selectedUsers.length) {
+            notyf.success(`${deletedCount} user(s) deleted`);
+          } else if (deletedCount > 0) {
+            notyf.error(`${deletedCount} deleted; remaining users could not be deleted`);
+          }
+        }).catch((error) => {
+          notyf.error(error.message || "Failed to delete selected users");
+        });
+      },
+    });
+  });
+
   tbody.addEventListener("click", (e) => {
     if (e.target.classList.contains("edit-user-btn")) {
       const userId = e.target.dataset.userId;
@@ -1498,9 +1610,9 @@ function renderUsers(container) {
         message: `Are you sure you want to delete this user ${user.firstname} ${user.surname} and all it's data`,
         async onConfirm() {
           await withLoadingOverlay("Deleting user", async () => {
-            await deleteUser(userId);
+            const deleted = await deleteUser(userId);
             renderUsers(container);
-            notyf.success("user removed successfully");
+            if (deleted) notyf.success("user removed successfully");
           }).catch((error) => {
             notyf.error(error.message || "Failed to delete user");
           });
@@ -1565,16 +1677,17 @@ function displayResult(station, element, results = getStationResults(station.id)
     const student = getUserById(studentResult.studentId);
 
     if (student) {
+      const metrics = getStationScoreMetrics(station, studentResult);
       element.innerHTML += `
 
       <tr>
         <td>${student.firstname} </td>
         <td>${student.surname} </td>
         <td>${student.admissionNo} </td>
-        <td>${Number(studentResult.procedureTotal || 0).toFixed(2)}</td>
-        <td>${Number(studentResult.procedurePercentage || 0).toFixed(2)}</td>
-        <td>${Number(studentResult.questionTotal || 0).toFixed(2)}</td>
-        <td>${Number(studentResult.questionPercentage || 0).toFixed(2)}</td>
+        <td>${metrics.procedureEarned.toFixed(2)}</td>
+        <td>${metrics.procedurePercentage === null ? "—" : metrics.procedurePercentage.toFixed(2)}</td>
+        <td>${metrics.questionEarned.toFixed(2)}</td>
+        <td>${metrics.questionPercentage === null ? "—" : metrics.questionPercentage.toFixed(2)}</td>
       
       </tr>
     `;
@@ -1593,8 +1706,8 @@ function renderCombinedResults(container) {
           <p>View every student’s result across all stations in one table.</p>
         </div>
         <div>
-          <button class="refresh-combined-results-btn" type="button">Refresh</button>
-          <button class="download-combined-results-btn" type="button">Download CSV</button>
+          <button class="refresh-combined-results-btn primary-btn" type="button">Refresh</button>
+          <button class="download-combined-results-btn primary-btn" type="button">Download CSV</button>
         </div>
       </div>
       <p class="combined-results-state" role="status">Loading latest results…</p>
@@ -1635,18 +1748,7 @@ function renderCombinedResults(container) {
 }
 
 function renderCombinedResultTable(table, stations, results) {
-  const submittedStudentIds = new Set(
-    results
-      .filter(
-        (result) =>
-          result.status?.question === "completed" ||
-          result.status?.procedure === "completed",
-      )
-      .map((result) => result.studentId),
-  );
-  const students = getAllUsers().filter(
-    (user) => user.role === "student" && submittedStudentIds.has(user.id),
-  );
+  const students = getAllUsers().filter((user) => user.role === "student");
   const resultsByStudentAndStation = new Map(
     results.map((result) => [
       `${result.studentId}:${result.stationId}`,
@@ -1669,6 +1771,14 @@ function renderCombinedResultTable(table, stations, results) {
     stationHeaderRow.appendChild(cell);
   });
 
+  ["Cumulative %", "Remark"].forEach((label) => {
+    const cell = document.createElement("th");
+    cell.rowSpan = 2;
+    cell.textContent = label;
+    cell.classList.add("cumulative-result-header");
+    stationHeaderRow.appendChild(cell);
+  });
+
   const metricHeaderRow = document.createElement("tr");
   stations.forEach(() => {
     ["Procedure Score", "Procedure %", "Question Score", "Question %"].forEach(
@@ -1687,29 +1797,58 @@ function renderCombinedResultTable(table, stations, results) {
   const tbody = document.createElement("tbody");
   students.forEach((student) => {
     const row = document.createElement("tr");
-    const values = [student.admissionNo || "", student.firstname, student.surname];
+    [student.admissionNo || "", student.firstname, student.surname].forEach((value) => {
+      const cell = document.createElement("td");
+      cell.textContent = value;
+      row.appendChild(cell);
+    });
+
+    let totalEarned = 0;
+    let totalPossible = 0;
 
     for (const station of stations) {
       const result = resultsByStudentAndStation.get(
         `${student.id}:${station.id}`,
       );
+      const metrics = getStationScoreMetrics(station, result);
+      totalEarned += metrics.earned;
+      totalPossible += metrics.maximum;
 
-      values.push(
-        result ? Number(result.procedureTotal || 0).toFixed(2) : "",
-        result ? Number(result.procedurePercentage || 0).toFixed(2) : "",
-        result ? Number(result.questionTotal || 0).toFixed(2) : "",
-        result ? Number(result.questionPercentage || 0).toFixed(2) : "",
-      );
+      [
+        metrics.procedureEarned.toFixed(2),
+        metrics.procedurePercentage === null ? "—" : metrics.procedurePercentage.toFixed(2),
+        metrics.questionEarned.toFixed(2),
+        metrics.questionPercentage === null ? "—" : metrics.questionPercentage.toFixed(2),
+      ].forEach((value, index) => {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        if (index === 3) cell.classList.add("station-group-end");
+        row.appendChild(cell);
+      });
     }
 
-    values.forEach((value, index) => {
-      const cell = document.createElement("td");
-      cell.textContent = value;
-      if (index >= 3 && (index - 2) % 4 === 0) {
-        cell.classList.add("station-group-end");
-      }
-      row.appendChild(cell);
-    });
+    const cumulativePercentage = totalPossible > 0
+      ? (totalEarned / totalPossible) * 100
+      : null;
+    const percentageCell = document.createElement("td");
+    percentageCell.textContent = cumulativePercentage === null
+      ? "N/A"
+      : cumulativePercentage.toFixed(2);
+    percentageCell.classList.add("cumulative-percentage-cell");
+    row.appendChild(percentageCell);
+
+    const remarkCell = document.createElement("td");
+    const remark = cumulativePercentage === null
+      ? "N/A"
+      : cumulativePercentage < 50
+        ? "Failed"
+        : "Passed";
+    remarkCell.textContent = remark;
+    remarkCell.classList.add("result-remark-cell");
+    if (remark !== "N/A") {
+      remarkCell.classList.add(remark === "Passed" ? "result-passed" : "result-failed");
+    }
+    row.appendChild(remarkCell);
     tbody.appendChild(row);
   });
 
@@ -1727,7 +1866,7 @@ export function renderSubmissionMonitor(container) {
           <h2>Submission Monitor</h2>
           <p>Monitor student question and procedure assessments across stations.</p>
         </div>
-        <button class="refresh-submission-monitor-btn" type="button">Refresh</button>
+        <button class="refresh-submission-monitor-btn primary-btn" type="button">Refresh</button>
       </div>
       <p class="submission-monitor-state" role="status">Loading latest submissions…</p>
 

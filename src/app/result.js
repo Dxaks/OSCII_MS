@@ -56,12 +56,12 @@ class Result {
   // Recalculate totals and percentages from the recorded scores.
   calculateTotal(totalProcedureMarks, totalQuestionMarks) {
     this.procedureTotal = this.procedureResults.reduce(
-      (sum, item) => sum + item.score,
+      (sum, item) => sum + Number(item.score || 0),
       0,
     );
 
     this.questionTotal = this.questionResults.reduce(
-      (sum, item) => sum + item.score,
+      (sum, item) => sum + Number(item.score || 0),
       0,
     );
 
@@ -190,7 +190,7 @@ export function resetResults() {
   ResultManagement.reset();
 }
 
-export function addProcedureScore(resultId, procedureId, score) {
+export function addProcedureScore(resultId, procedureId, score, possibleMark) {
 
   const result = ResultManagement.getResult(resultId);
 
@@ -202,15 +202,16 @@ export function addProcedureScore(resultId, procedureId, score) {
 
   if (existingScore) {
     existingScore.score = score;
+    if (possibleMark !== undefined) existingScore.possibleMark = possibleMark;
   } else {
-    result.procedureResults.push({ procedureId, score });
+    result.procedureResults.push({ procedureId, score, possibleMark });
   }
 
   return true;
 }
 
 
-export function addQuestionScore(resultId, questionId, score) {
+export function addQuestionScore(resultId, questionId, score, possibleMark) {
   const result = ResultManagement.getResult(resultId);
 
   if (!result) return false;
@@ -221,8 +222,9 @@ export function addQuestionScore(resultId, questionId, score) {
 
   if (existingScore) {
     existingScore.score = score;
+    if (possibleMark !== undefined) existingScore.possibleMark = possibleMark;
   } else {
-    result.questionResults.push({ questionId, score });
+    result.questionResults.push({ questionId, score, possibleMark });
   }
 
   return true;

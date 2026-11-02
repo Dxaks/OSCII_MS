@@ -48,6 +48,14 @@ export function renderHomePage(container) {
 
     </div>
 
+    <footer class="login-footer home-footer" aria-label="Developer credit">
+        <span class="login-footer-name">Zakariya Auwal</span>
+        <span class="login-footer-separator" aria-hidden="true">|</span>
+        <span class="login-footer-role">Junior Software Developer</span>
+        <span class="login-footer-separator" aria-hidden="true">|</span>
+        <span class="login-footer-organization">UMCONS</span>
+    </footer>
+
 </div>
 
 `;
