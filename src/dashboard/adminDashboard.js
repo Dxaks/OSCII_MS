@@ -229,39 +229,6 @@ function openModal(title, formHtml) {
   });
 }
 
-// create station modal
-// function showCreateStationModal() {
-//   openModal(
-//     "Create Station",
-//     `
-//     <form id="create-station-form" class="dashboard-form">
-//       <div class="form-group">
-//         <label>Station Name</label>
-//         <input 
-//           type="text" 
-//           name="stationName" 
-//           placeholder="e.g. Hand Washing Procedure" 
-//           required
-//         />
-//         <label>Station Description</label>
-//         <input 
-//           type="text-area" 
-//           name="stationDescription"
-//           required
-//         />
-//       </div>
-
-//       <button class="form-submit-btn" type="submit">
-//         Save Station
-//       </button>
-//     </form>
-//   `,
-//   );
-
-//   const form = document.querySelector("#create-station-form");
-//   form.addEventListener("submit", handleCreateStation);
-// }
-
 
 function showCreateStationModal() {
   openModal(
@@ -420,38 +387,6 @@ async function handleCreateStation(e) {
     notyf.error(error.message || "Failed to create station");
   });
 }
-
-
-// async function handleCreateStation(e) {
-//   e.preventDefault();
-
-//   const formData = new FormData(e.target);
-
-//   const stationName = formData.get("stationName");
-//   const stationDescription = formData.get("stationDescription");
-
-//   await withLoadingOverlay("Creating station", async () => {
-
-//     const response = await createStationRemote(stationName, stationDescription);
-//     const stationData = response.station;
-
-//     const station = createStation(
-//       stationData.name,
-//       stationData.description,
-//       stationData.id,
-//       false,
-//     );
-
-//     Object.assign(station, stationData);
-//     // saveStationToLocalStorage();
-
-//     const adminContent = document.querySelector("#admin-content");
-//     renderViewStations(adminContent);
-//     document.querySelector(".modal-overlay").remove();
-//   }).catch((error) => {
-//     notyf.error(error.message || "Failed to create station");
-//   });
-// }
 
 
 function showEditStationModal(station, container) {

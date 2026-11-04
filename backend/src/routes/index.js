@@ -241,8 +241,6 @@ router.patch("/stations/:id", requireAuth, requireRole("admin"), async (req, res
 
   const { name, description, questionName, procedureName, questionTimer, procedureTimer } = req.body || {};
 
-  // if (name !== undefined) station.name = name;
-
   if (name !== undefined) {
     if (typeof name !== "string" || !name.trim()) {
       return res.status(400).json({
@@ -614,159 +612,6 @@ router.get("/stations/:id/results.csv", requireAuth, async (req, res) => {
 });
 
 
-// router.post("/results", requireAuth, async (req, res) => {
-//   const {
-//     id,
-//     studentId,
-//     stationId,
-//     procedureResults = [],
-//     questionResults = [],
-//     procedureTotal = 0,
-//     questionTotal = 0,
-//     procedurePercentage = 0,
-//     questionPercentage = 0,
-//     status = { procedure: "in-progress", question: "in-progress" },
-//   } = req.body || {};
-
-//   if (!studentId || !stationId) {
-//     return res.status(400).json({ message: "studentId and stationId are required" });
-//   }
-
-//   const db = await readDb();
-//   const existingResultIndex = db.results.findIndex(
-//     (candidate) =>
-//       candidate.id === id ||
-//       (candidate.studentId === studentId && candidate.stationId === stationId),
-//   );
-//   const result = {
-//     id: id || makeId(),
-//     studentId,
-//     stationId,
-//     procedureResults,
-//     questionResults,
-//     procedureTotal,
-//     questionTotal,
-//     procedurePercentage,
-//     questionPercentage,
-//     status,
-//     studentAnswers: {},
-//     currentQuestionIndex: 0,
-//     timeRemaining: null,
-//     procedureTimeRemaining: null,
-//     procedureScores: {},
-//     createdAt: new Date().toISOString(),
-//     updatedAt: new Date().toISOString(),
-//   };
-
-//   if (existingResultIndex >= 0) {
-//     db.results[existingResultIndex] = {
-//       ...db.results[existingResultIndex],
-//       ...result,
-//       id: db.results[existingResultIndex].id,
-//       createdAt: db.results[existingResultIndex].createdAt,
-//     };
-//   } else {
-//     db.results.push(result);
-//   }
-
-//   await updateDb(() => db);
-
-//   res.status(201).json({ result });
-// });
-
-
-// router.patch("/results/:id", requireAuth, async (req, res) => {
-//   const db = await readDb();
-//   const result = db.results.find((candidate) => candidate.id === req.params.id);
-
-//   if (!result) {
-//     return res.status(404).json({ message: "Result not found" });
-//   }
-
-//   Object.assign(result, req.body || {});
-//   result.updatedAt = new Date().toISOString();
-
-//   await updateDb(() => db);
-//   res.json({ result });
-// });
-
-
-
-// router.post("/results", requireAuth, async (req, res) => {
-//   try {
-//     const {
-//       id,
-//       studentId,
-//       stationId,
-//       procedureResults = [],
-//       questionResults = [],
-//       procedureTotal = 0,
-//       questionTotal = 0,
-//       procedurePercentage = 0,
-//       questionPercentage = 0,
-//       status = {
-//         procedure: "in-progress",
-//         question: "in-progress",
-//       },
-//     } = req.body || {};
-
-//     if (!studentId || !stationId) {
-//       return res.status(400).json({
-//         message: "studentId and stationId are required",
-//       });
-//     }
-
-//     const db = await readDb();
-
-//     const existingResult = db.results.find(
-//       (candidate) =>
-//         candidate.id === id ||
-//         (candidate.studentId === studentId &&
-//           candidate.stationId === stationId),
-//     );
-
-//     if (existingResult) {
-//       return res.status(200).json({
-//         result: existingResult,
-//       });
-//     }
-
-//     const result = {
-//       id: id || makeId(),
-//       studentId,
-//       stationId,
-//       procedureResults,
-//       questionResults,
-//       procedureTotal,
-//       questionTotal,
-//       procedurePercentage,
-//       questionPercentage,
-//       status,
-//       studentAnswers: {},
-//       currentQuestionIndex: 0,
-//       timeRemaining: null,
-//       procedureTimeRemaining: null,
-//       procedureScores: {},
-//       createdAt: new Date().toISOString(),
-//       updatedAt: new Date().toISOString(),
-//     };
-
-//     db.results.push(result);
-
-//     await updateDb(() => db);
-
-//     return res.status(201).json({ result });
-//   } catch (error) {
-//     console.error("Failed to create result:", error);
-
-//     return res.status(500).json({
-//       message: "Failed to create result",
-//     });
-//   }
-// });
-
-
-
 router.post("/results", requireAuth, async (req, res) => {
     try {
         const {
@@ -818,7 +663,6 @@ router.post("/results", requireAuth, async (req, res) => {
         });
     }
 });
-
 
 
 router.patch("/results/:id", requireAuth, async (req, res) => {

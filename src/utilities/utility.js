@@ -332,30 +332,6 @@ export function startProcedureTimer(result, station, timerElement, onTimeUp) {
 }
 
 
-// export async function syncResult(result) {
-//     try {
-//         await updateResultRemote(result.id, result);
-//     } catch (err) {
-//         console.error(err);
-//     }
-// }
-
-// export async function syncResult(result) {
-//     await updateResultRemote(result.id, result);
-// }
-
-// export function updateResultAtRegularInterval(result) {
-//   // Periodic snapshots reduce the chance of losing in-progress answers on refresh.
-
-//   console.trace("where di i call update at regular interval");
-
-//   const timerId = setInterval(() => {
-//     syncResult(result);
-//   }, 10000);
-//   return timerId;
-// }
-
-
 const resultSaveQueues = new Map();
 
 export function startAssessmentAutosave(result) {

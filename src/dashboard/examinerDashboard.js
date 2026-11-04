@@ -189,80 +189,6 @@ export function renderProcedurePage(
 }
 
 
-// function renderProcedureItems(container, station, result) {
-//   container.innerHTML = "";
-
-//   station.procedureItems.forEach((item, index) => {
-//     const savedScore = result.procedureScores[item.id];
-
-//     const isCompleted = Object.prototype.hasOwnProperty.call(
-//       result.procedureScores,
-//       item.id,
-//     );
-
-//     const optionsHtml = item.scoreOptions
-//       .map((option) => {
-//         return `
-
-//                     <label>
-
-//                         <input
-//                             type="radio"
-//                             name="${item.id}"
-//                             value="${option}"
-//                             ${savedScore === option ? "checked" : ""}
-//                         >
-
-//                         ${option}
-
-//                     </label>
-
-//                 `;
-//       })
-//       .join("");
-
-//     container.innerHTML += `
-
-//                 <div class="procedure-item ${isCompleted ? "completed" : ""}">
-
-//                     <h3>
-//                         ${index + 1}.
-//                         ${item.description}
-//                     </h3>
-
-//                     <div class="score-options">
-//                         ${optionsHtml}
-//                     </div>
-
-//                 </div>
-//             `;
-//   });
-
-//   setupProcedureEvents(container, result);
-// }
-
-
-// function setupProcedureEvents(container, result) {
-//   const radios = container.querySelectorAll(
-//     ".procedure-item input[type='radio']",
-//   );
-
-//   radios.forEach((radio) => {
-//     radio.addEventListener("change", () => {
-//       const procedureId = radio.name;
-
-//       result.procedureScores[procedureId] = Number(radio.value);
-
-//       const card = radio.closest(".procedure-item");
-//       card.classList.add("completed");
-
-//       syncResult(result);
-//     });
-//   });
-// }
-
-
-
 function calculateProcedureMarks(station, result) {
   return {
     marksAwarded: getProcedureMarksEarned(station, result),
@@ -373,32 +299,6 @@ function setupProcedureEvents(container, station, result, scoreDisplay) {
         });
     });
 }
-
-
-// function setupProcedureEvents(container, result) {
-//     const radios = container.querySelectorAll(
-//         ".procedure-item input[type='radio']"
-//     );
-
-//     radios.forEach((radio) => {
-//         radio.addEventListener("change", async () => {
-//             const procedureId = radio.name;
-
-//             result.procedureScores[procedureId] = Number(radio.value);
-
-//             const card = radio.closest(".procedure-item");
-//             card?.classList.add("completed");
-
-//             const snapshot = structuredClone(result);
-
-//             try {
-//                 await syncResult(snapshot);
-//             } catch (error) {
-//                 console.error("Failed to save procedure score:", error);
-//             }
-//         });
-//     });
-// }
 
 
 function runProcedureTimer(

@@ -10,6 +10,9 @@ import { renderProcedureInfo } from "./procedureAssessmentInfo.js";
 import { clearAuthToken, setAuthToken } from "../app/backendApi.js";
 import { showAdminReturnDialog } from "./adminReturnDialog.js";
 import { clearSession, saveBrowserSession } from "../session/session.js";
+import procedureImage from "../asset/images/procedureStnPlaceHolder.jpg"
+import questionImage from "../asset/images/questionStnPlaceHolder.jpg"
+import adminImage from "../asset/images/admin_image.png"
 
 const PROTECTED_LOGIN_STATE = "protected-login";
 
@@ -105,8 +108,6 @@ export function renderLoginPage(container, stationId, type) {
         : `${station?.questionName || ""}`;
 
   const subtitle = station?.description || "";
-
-  console.log(subtitle === true)
 
   container.innerHTML = `
 
@@ -208,6 +209,17 @@ export function renderLoginPage(container, stationId, type) {
 </div>
 
 `;
+
+
+  const leftBackground = container.querySelector(".login-left");
+
+  if(type === "procedure") {
+    leftBackground.style.backgroundImage = `url(${procedureImage})`;
+  } else if(type === "question") {
+    leftBackground.style.backgroundImage = `url(${questionImage})`;
+  }else {
+    leftBackground.style.backgroundImage = `url(${adminImage})`;
+  }
 
 
   if (isProtectedLogin(type)) {

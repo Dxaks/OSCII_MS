@@ -105,32 +105,6 @@ export function createResult(studentId, stationId, resultId, saveToLocal = true)
 }
 
 
-
-// export async function createResultAndWait(studentId, stationId, resultId) {
-//   const result = new Result(studentId, stationId, resultId);
-
-//   // Save the result locally first.
-//   ResultManagement.saveResult(result);
-
-//   // Wait until the backend confirms result creation.
-//   await createResultRemote({
-//     id: result.id,
-//     studentId: result.studentId,
-//     stationId: result.stationId,
-//     procedureResults: result.procedureResults,
-//     questionResults: result.questionResults,
-//     procedureTotal: result.procedureTotal,
-//     questionTotal: result.questionTotal,
-//     procedurePercentage: result.procedurePercentage,
-//     questionPercentage: result.questionPercentage,
-//     status: result.status,
-//   });
-
-//   // Return the result only after the backend request succeeds.
-//   return result;
-// }
-
-
 export async function createResultAndWait(studentId, stationId, resultId) {
   const result = new Result(studentId, stationId, resultId);
 

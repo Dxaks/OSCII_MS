@@ -315,25 +315,6 @@ function renderNavigations(station, selector, result) {
   });
 }
 
-// function setupQuestionEvents(container, station, result) {
-//   const index = result.currentQuestionIndex;
-//   const question = station.questions[index];
-
-//   const radios = container.querySelectorAll('input[type="radio"]');
-
-//   radios.forEach((radio) => {
-//     radio.addEventListener("change", () => {
-//       result.studentAnswers[question.id] = radio.value;
-
-//       const navBtn = document.querySelector(`[data-index="${index}"]`);
-
-//       navBtn.classList.add("answered");
-      
-//       syncResult(result)
-//     });
-//   });
-// }
-
 
 function setupQuestionEvents(container, station, result) {
     const index = result.currentQuestionIndex;

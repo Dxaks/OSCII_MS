@@ -139,33 +139,6 @@ export function renderAssessmentInfo(
 
   const startBtn = container.querySelector(".start-assessment-btn");
 
-  // startBtn.addEventListener("click", () => {
-  //   if (!station.questions.length) {
-  //     showNoticeDialog({
-  //       title: "Assessment Unavailable",
-  //       message:
-  //         "There are currently no questions available for this assessment.",
-  //     });
-  //     return;
-  //   }
-
-  //   if (existingResult) {
-  //     // Resume only if the student already has an unfinished question attempt.
-  //     if (existingResult.status.question === "completed") {
-  //       showNoticeDialog({
-  //         title: "Assessment Completed",
-
-  //         message: "You have already completed this station.",
-  //       });
-
-  //       return;
-  //     }
-  //   }
-
-  //   renderQuestionPage(container, station, user, type, existingResult);
-  // });
-
-
   startBtn.addEventListener("click", async () => {
     if (!station.questions.length) {
       showNoticeDialog({

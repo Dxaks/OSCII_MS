@@ -169,23 +169,6 @@ function isMissingDatabaseError(error) {
   );
 }
 
-
-// export async function readDb(queryClient = pool) {
-//   await ensureDb();
-
-//   const [usersResult, stationsResult, resultsResult] = await Promise.all([
-//     queryClient.query("SELECT * FROM users ORDER BY created_at ASC"),
-//     queryClient.query("SELECT * FROM stations ORDER BY created_at ASC"),
-//     queryClient.query("SELECT * FROM results ORDER BY created_at ASC"),
-//   ]);
-
-//   return {
-//     users: usersResult.rows.map(mapUserRow),
-//     stations: stationsResult.rows.map(mapStationRow),
-//     results: resultsResult.rows.map(mapResultRow),
-//   };
-// }
-
 export async function readDb(queryClient = pool) {
   await ensureDb();
 
