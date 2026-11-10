@@ -14,9 +14,10 @@ export function showAdminReturnDialog(onConfirm) {
     <form class="admin-return-dialog-panel">
       <h2>Admin Verification</h2>
       <p>Enter the admin password to return to the main menu.</p>
+      <p><strong>Note: Only Admin can re-assign another procedure / question station.</strong></p>
 
       <label class="admin-return-field">
-        <span>Admin Password</span>
+        <span>Enter Administrator Password</span>
         <input
           type="password"
           name="password"

@@ -10,9 +10,8 @@ import { renderProcedureInfo } from "./procedureAssessmentInfo.js";
 import { clearAuthToken, setAuthToken } from "../app/backendApi.js";
 import { showAdminReturnDialog } from "./adminReturnDialog.js";
 import { clearSession, saveBrowserSession } from "../session/session.js";
-import procedureImage from "../asset/images/procedureStnPlaceHolder.jpg"
-import questionImage from "../asset/images/questionStnPlaceHolder.jpg"
-import adminImage from "../asset/images/admin_image.png"
+import logo from "../asset/images/umcons_logo.png"
+
 
 const PROTECTED_LOGIN_STATE = "protected-login";
 
@@ -119,6 +118,8 @@ export function renderLoginPage(container, stationId, type) {
 
     <div class="login-left">
 
+        <img src="${logo}">
+
         <div class="login-overlay">
 
             <h1>
@@ -126,12 +127,6 @@ export function renderLoginPage(container, stationId, type) {
             ${overlayTitle}
 
             </h1>
-
-            <h2>
-
-               ${subtitle}             
-
-            </h2>
 
             <p>
 
@@ -209,17 +204,6 @@ export function renderLoginPage(container, stationId, type) {
 </div>
 
 `;
-
-
-  const leftBackground = container.querySelector(".login-left");
-
-  if(type === "procedure") {
-    leftBackground.style.backgroundImage = `url(${procedureImage})`;
-  } else if(type === "question") {
-    leftBackground.style.backgroundImage = `url(${questionImage})`;
-  }else {
-    leftBackground.style.backgroundImage = `url(${adminImage})`;
-  }
 
 
   if (isProtectedLogin(type)) {
