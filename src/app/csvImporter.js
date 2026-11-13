@@ -11,6 +11,7 @@ import {
   createQuestionRemote,
   createProcedureItemRemote,
 } from "./backendApi.js";
+import { getProcedureScoreOptions } from "../../shared/scoring.js";
 
 export function importUsers(csvData, onComplete) {
   Papa.parse(csvData, {
@@ -161,21 +162,35 @@ export function importProcedureItems(csvData, stationId, onComplete) {
             continue;
           }
 
-          const description = data[0];
-          const maximumMark = Number(data[1]);
-          if (!description || !Number.isFinite(maximumMark) || maximumMark <= 0) {
-            notyf.error("Each procedure item needs a description and a positive mark.");
+          const description = data[0]?.trim();
+          const rawMark = data[1]?.trim();
+          const maximumMark = Number(rawMark);
+          if (
+            !description ||
+            rawMark === "" ||
+            !Number.isFinite(maximumMark) ||
+            maximumMark < 0
+          ) {
+            notyf.error("Each procedure row needs a description and a non-negative mark.");
             continue;
           }
-          const scoreOptions = [0, maximumMark];
+          const kind = maximumMark === 0 ? "heading" : "scored";
+          const scoreOptions = getProcedureScoreOptions(maximumMark);
 
           try {
-            await createProcedureItemRemote(stationId, {
+            const response = await createProcedureItemRemote(stationId, {
               description,
               scoreOptions,
+              kind,
             });
 
-            addProcedureToStation(stationId, description, scoreOptions);
+            addProcedureToStation(
+              stationId,
+              description,
+              scoreOptions,
+              response?.item?.id,
+              kind,
+            );
           } catch (error) {
             notyf.error(error.message || "Failed to upload a procedure item");
           }

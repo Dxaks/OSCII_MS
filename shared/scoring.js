@@ -3,6 +3,17 @@ function toFiniteNumber(value) {
   return Number.isFinite(number) ? number : 0;
 }
 
+export function formatScore(value) {
+  return Number(toFiniteNumber(value).toFixed(10)).toString();
+}
+
+export function getProcedureScoreOptions(maximumMark) {
+  const maximum = toFiniteNumber(maximumMark);
+  if (maximum <= 0) return [];
+
+  return [0, maximum * 0.25, maximum * 0.5, maximum];
+}
+
 function sumScores(entries, fallback = 0) {
   if (!Array.isArray(entries) || entries.length === 0) {
     return toFiniteNumber(fallback);

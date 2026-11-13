@@ -126,10 +126,11 @@ export function resetStations() {
 }
 
 class ProcedureItem {
-  constructor(description, scoreOptions) {
-    this.id = makeId();
+  constructor(description, scoreOptions, id, kind = "scored") {
+    this.id = id || makeId();
     this.description = description;
     this.scoreOptions = scoreOptions;
+    this.kind = kind;
   }
 }
 
@@ -143,11 +144,17 @@ class Question {
   }
 }
 
-export function addProcedureToStation(stationId, description, scoreOptions) {
+export function addProcedureToStation(
+  stationId,
+  description,
+  scoreOptions,
+  id,
+  kind = "scored",
+) {
   // const station = StationManagement.getStation(stationName);
   const station = StationManagement.getStationById(stationId)
 
-  const procedureItem = new ProcedureItem(description, scoreOptions);
+  const procedureItem = new ProcedureItem(description, scoreOptions, id, kind);
   station.addProcedure(procedureItem);
 
   return true;

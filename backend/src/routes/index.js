@@ -2,7 +2,7 @@ import { Router } from "express";
 import { hashPassword, signToken, verifyPassword, verifyToken } from "../lib/auth.js";
 import { toCsv } from "../lib/csv.js";
 import { makeId, readDb, updateDb, updateResultById, createResultIfNotExists } from "../store/db.js";
-import { getStationScoreMetrics } from "../../../shared/scoring.js";
+import { formatScore, getStationScoreMetrics } from "../../../shared/scoring.js";
 
 const router = Router();
 
@@ -406,24 +406,29 @@ router.post("/stations/:id/procedure-items", requireAuth, requireRole("admin"), 
     return res.status(404).json({ message: "Station not found" });
   }
 
-  const { description, scoreOptions } = req.body || {};
+  const { description, scoreOptions, kind = "scored" } = req.body || {};
 
-  if (!description || !Array.isArray(scoreOptions)) {
+  if (
+    !description ||
+    !Array.isArray(scoreOptions) ||
+    !["scored", "heading"].includes(kind)
+  ) {
     return res.status(400).json({ message: "invalid procedure payload" });
   }
 
   const normalizedScoreOptions = scoreOptions.map(Number);
-  if (
-    normalizedScoreOptions.length < 2 ||
-    normalizedScoreOptions.some((score) => !Number.isFinite(score) || score < 0)
-  ) {
+  if (kind === "scored" && (
+      normalizedScoreOptions.length < 2 ||
+      normalizedScoreOptions.some((score) => !Number.isFinite(score) || score < 0)
+    )) {
     return res.status(400).json({ message: "procedure score options must be non-negative numbers" });
   }
 
   const item = {
     id: makeId(),
     description,
-    scoreOptions: normalizedScoreOptions,
+    scoreOptions: kind === "heading" ? [] : normalizedScoreOptions,
+    kind,
   };
 
   station.procedureItems.push(item);
@@ -550,7 +555,7 @@ router.get("/results.csv", requireAuth, async (_req, res) => {
         cumulativeEarned += metrics.earned;
         cumulativeMaximum += metrics.maximum;
 
-        row[`${prefix} - Procedure Score`] = metrics.procedureEarned.toFixed(2);
+        row[`${prefix} - Procedure Score`] = formatScore(metrics.procedureEarned);
         row[`${prefix} - Procedure Percentage`] = formatPercentage(metrics.procedurePercentage);
         row[`${prefix} - Question Score`] = metrics.questionEarned.toFixed(2);
         row[`${prefix} - Question Percentage`] = formatPercentage(metrics.questionPercentage);
@@ -594,7 +599,7 @@ router.get("/stations/:id/results.csv", requireAuth, async (req, res) => {
         firstname: student?.firstname || "",
         surname: student?.surname || "",
         admissionNo: student?.admissionNo || "",
-        procedureTotal: metrics.procedureEarned.toFixed(2),
+        procedureTotal: formatScore(metrics.procedureEarned),
         procedurePercentage: formatPercentage(metrics.procedurePercentage),
         questionTotal: metrics.questionEarned.toFixed(2),
         questionPercentage: formatPercentage(metrics.questionPercentage),

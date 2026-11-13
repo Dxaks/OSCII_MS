@@ -15,6 +15,7 @@ import {
   getMaximumProcedureMarks,
   getMaximumQuestionMarks,
   getProcedureMarksEarned,
+  formatScore,
 } from "../../shared/scoring.js";
 
 export function renderProcedurePage(
@@ -88,9 +89,9 @@ export function renderProcedurePage(
 
                 <footer class="procedure-footer">
                     <div class="answered-count">
-                        ${calculateProcedureMarks(station, result).marksAwarded}
+                        ${formatScore(calculateProcedureMarks(station, result).marksAwarded)}
                         /
-                        ${calculateProcedureMarks(station, result).totalMarks}
+                        ${formatScore(calculateProcedureMarks(station, result).totalMarks)}
                     </div>
 
                     <div class="procedure-timer">
@@ -205,9 +206,13 @@ function renderProcedureItems(container, station, result) {
 
     station.procedureItems.forEach((item, index) => {
 
-        const isSubheading =
-            item.scoreOptions.length === 2 &&
-            item.scoreOptions.every(option => Number(option) === 0);
+        const scoreOptions = Array.isArray(item.scoreOptions)
+            ? item.scoreOptions
+            : [];
+        const isSubheading = item.kind === "heading" || (
+            scoreOptions.length === 2 &&
+            scoreOptions.every(option => Number(option) === 0)
+        );
 
         if (!isSubheading) {
           itemNumber++;
@@ -222,7 +227,7 @@ function renderProcedureItems(container, station, result) {
 
         const optionsHtml = isSubheading
             ? ""
-            : item.scoreOptions
+            : scoreOptions
                 .map((option) => {
                     return `
                         <label>
@@ -232,7 +237,7 @@ function renderProcedureItems(container, station, result) {
                                 value="${option}"
                                 ${Number(savedScore) === Number(option) && isCompleted ? "checked" : ""}
                             >
-                            ${option}
+                            ${formatScore(option)}
                         </label>
                     `;
                 })
@@ -281,7 +286,7 @@ function setupProcedureEvents(container, station, result, scoreDisplay) {
 
             if (scoreDisplay) {
                 scoreDisplay.textContent =
-                    `${marksAwarded} / ${totalMarks}`;
+                    `${formatScore(marksAwarded)} / ${formatScore(totalMarks)}`;
             }
 
             const snapshot = structuredClone(result);

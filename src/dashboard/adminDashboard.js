@@ -37,7 +37,11 @@ import {
   showNoticeDialog,
 } from "../utilities/utility.js";
 import { renderHomePage } from "./homePage.js";
-import { getStationScoreMetrics } from "../../shared/scoring.js";
+import {
+  formatScore,
+  getProcedureScoreOptions,
+  getStationScoreMetrics,
+} from "../../shared/scoring.js";
 import {
   apiRequest,
   clearAuthToken,
@@ -932,13 +936,24 @@ function showProcedureModal(stationId, container, procedure = null) {
         ${procedure?.description || ""}
         </textarea>
 
-        <input
-          type="text"
-          name="scoreOptions"
-          value="${procedure?.scoreOptions || ""}"
-          placeholder="Mark"
-          required
-        >
+        ${isEditMode
+          ? `<input
+              type="text"
+              name="scoreOptions"
+              value="${procedure?.scoreOptions?.length
+                ? procedure.scoreOptions
+                : procedure?.kind === "heading" ? "0,0" : ""}"
+              placeholder="Score options, e.g. 0, 0.25, 0.5, 1"
+              required
+            >`
+          : `<input
+              type="number"
+              name="maximumMark"
+              min="0"
+              step="any"
+              placeholder="Maximum mark (0 creates a subheading)"
+              required
+            >`}
 
         <div class="dialog-actions">
           ${
@@ -1006,15 +1021,38 @@ async function handleProcedureSubmit(e, stationId, container, procedure) {
   const isEditMode = procedure !== null;
 
   const formData = new FormData(e.target);
-  const description = formData.get("description");
-  const scoreOptions = formData.get("scoreOptions").split(",").map(Number);
-
-  if (
-    scoreOptions.length < 2 ||
-    scoreOptions.some((score) => !Number.isFinite(score) || score < 0)
-  ) {
-    notyf.error("Enter at least two valid, non-negative score options.");
+  const description = formData.get("description")?.trim();
+  if (!description) {
+    notyf.error("Enter a procedure description.");
     return;
+  }
+
+  let scoreOptions;
+  let kind = procedure?.kind || "scored";
+
+  if (isEditMode) {
+    scoreOptions = formData.get("scoreOptions").split(",").map(Number);
+    if (
+      scoreOptions.length < 2 ||
+      scoreOptions.some((score) => !Number.isFinite(score) || score < 0)
+    ) {
+      notyf.error("Enter at least two valid, non-negative score options.");
+      return;
+    }
+  } else {
+    const rawMaximumMark = formData.get("maximumMark")?.trim();
+    const maximumMark = Number(rawMaximumMark);
+    if (
+      rawMaximumMark === "" ||
+      !Number.isFinite(maximumMark) ||
+      maximumMark < 0
+    ) {
+      notyf.error("Enter a valid, non-negative maximum mark.");
+      return;
+    }
+
+    kind = maximumMark === 0 ? "heading" : "scored";
+    scoreOptions = getProcedureScoreOptions(maximumMark);
   }
 
   await withLoadingOverlay(
@@ -1028,12 +1066,19 @@ async function handleProcedureSubmit(e, stationId, container, procedure) {
           scoreOptions,
         );
       } else {
-        await createProcedureItemRemote(stationId, {
+        const response = await createProcedureItemRemote(stationId, {
           description,
           scoreOptions,
+          kind,
         });
 
-        addProcedureToStation(stationId, description, scoreOptions);
+        addProcedureToStation(
+          stationId,
+          description,
+          scoreOptions,
+          response?.item?.id,
+          kind,
+        );
       }
 
       document.querySelector(".modal-overlay").remove();
@@ -1619,7 +1664,7 @@ function displayResult(station, element, results = getStationResults(station.id)
         <td>${student.firstname} </td>
         <td>${student.surname} </td>
         <td>${student.admissionNo} </td>
-        <td>${metrics.procedureEarned.toFixed(2)}</td>
+        <td>${formatScore(metrics.procedureEarned)}</td>
         <td>${metrics.procedurePercentage === null ? "—" : metrics.procedurePercentage.toFixed(2)}</td>
         <td>${metrics.questionEarned.toFixed(2)}</td>
         <td>${metrics.questionPercentage === null ? "—" : metrics.questionPercentage.toFixed(2)}</td>
@@ -1750,7 +1795,7 @@ function renderCombinedResultTable(table, stations, results) {
       totalPossible += metrics.maximum;
 
       [
-        metrics.procedureEarned.toFixed(2),
+        formatScore(metrics.procedureEarned),
         metrics.procedurePercentage === null ? "—" : metrics.procedurePercentage.toFixed(2),
         metrics.questionEarned.toFixed(2),
         metrics.questionPercentage === null ? "—" : metrics.questionPercentage.toFixed(2),
